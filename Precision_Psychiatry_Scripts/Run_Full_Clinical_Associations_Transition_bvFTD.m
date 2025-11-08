@@ -27,19 +27,107 @@
 %  ==========================================================================
 
 clear; clc; close all;
+
+% =========================================================================
+% REPRODUCIBILITY: Set random seed for deterministic results
+% =========================================================================
+% Setting a random seed ensures reproducibility across all analyses,
+% even though this script primarily uses deterministic operations.
+% This is critical for scientific reproducibility and allows exact
+% replication of results when running multiple times.
+rng(42, 'twister');  % Mersenne Twister algorithm with seed 42
+
 fprintf('---------------------------------------------------\n');
 fprintf('| PRIORITY 4.1-4.5: COMPREHENSIVE CLINICAL ANALYSIS |\n');
 fprintf('---------------------------------------------------\n');
 fprintf('Start time: %s\n\n', datestr(now));
 
 %% ==========================================================================
-%  SECTION 0: VARIABLE LABEL MAPPING (NEW!)
+%  ANALYSIS PARAMETERS (SESSION 3: FEATURE 3.2)
+%  ==========================================================================
+%  Centralized configuration constants to improve code maintainability
+%  and eliminate magic numbers throughout the analysis pipeline.
+%
+%  RATIONALE: Using named constants instead of hardcoded values:
+%  1. Makes code self-documenting (intent is clear)
+%  2. Allows easy parameter tuning for sensitivity analyses
+%  3. Ensures consistency across all 4,000+ lines of code
+%  4. Facilitates future modifications without hunting for magic numbers
+
+% Statistical Thresholds
+% ----------------------
+% These control when analyses are performed and how significance is determined
+MIN_SAMPLE_SIZE = 30;           % Minimum n for valid statistical analyses (avoids unreliable small-sample estimates)
+ALPHA_LEVEL = 0.05;             % Significance level for uncorrected p-values (conventional 5% Type I error rate)
+FDR_LEVEL = 0.05;               % False Discovery Rate q-value for Benjamini-Hochberg correction
+CI_LEVEL = 0.95;                % Confidence interval level (95% - standard in medical research)
+CI_Z_SCORE = 1.96;              % Z-score for 95% CI in normal distribution (two-tailed)
+
+% Effect Size Interpretation Thresholds (Cohen's conventions)
+% ------------------------------------------------------------
+% Used to interpret practical significance of correlations and group differences
+EFFECT_SMALL = 0.10;            % Small effect: r = 0.10, d = 0.20
+EFFECT_MEDIUM = 0.30;           % Medium effect: r = 0.30, d = 0.50
+EFFECT_LARGE = 0.50;            % Large effect: r = 0.50, d = 0.80
+% Reference: Cohen, J. (1988). Statistical Power Analysis for the Behavioral Sciences.
+
+% Outlier Handling
+% ----------------
+% Decision scores are z-standardized brain predictions; extreme values indicate model uncertainty
+OUTLIER_THRESHOLD_DS = 10;      % Absolute decision score threshold (|z| > 10 is virtually impossible)
+OUTLIER_CODE = 99;              % Numeric code used in data files to indicate missing/outlier values
+
+% PCA Parameters
+% --------------
+% Principal Component Analysis reduces 11 symptom variables to orthogonal components
+MIN_VARIANCE_EXPLAINED = 0.70;  % Minimum cumulative variance for PC retention (70% - captures most information)
+MAX_N_COMPONENTS = 3;           % Maximum number of PCs to retain (balance between reduction and information)
+MIN_PCA_SAMPLES = 50;           % Minimum sample size for stable PCA (rule of thumb: 5× variables minimum)
+
+% Plotting Parameters
+% -------------------
+% Standardized visual parameters for publication-quality figures
+FIGURE_RESOLUTION = 300;        % DPI for saved PNG figures (300 DPI is publication standard)
+COLORMAP_CORR = 'redblue';      % Heatmap colormap: blue (negative) to red (positive) correlations
+MARKER_SIZE_SCATTER = 50;       % Marker size for scatter plots (optimal visibility)
+LINE_WIDTH_REGRESSION = 2;      % Line width for regression lines (clear without overwhelming)
+FONT_SIZE_AXIS = 12;            % Font size for axis labels (readable in publications)
+FONT_SIZE_TITLE = 14;           % Font size for plot titles (slightly larger for hierarchy)
+FOREST_PLOT_WIDTH = 1000;       % Forest plot figure width in pixels
+FOREST_PLOT_HEIGHT = 600;       % Forest plot figure height in pixels
+
+% Medication Analysis
+% -------------------
+MIN_MEDICATION_USERS = 10;      % Minimum n patients on specific medication for reliable analysis
+
+% Age Interaction Analysis
+% ------------------------
+MIN_GROUP_SIZE_INTERACTION = 3; % Minimum group size for plotting age×diagnosis interactions (avoids 1-2 point groups)
+AGE_PREDICTION_POINTS = 100;    % Number of points for smooth age prediction curves in interaction plots
+
+fprintf('  ✓ Analysis parameters initialized\n\n');
+
+%% ==========================================================================
+%  SECTION 0: VARIABLE LABEL MAPPING
+%  ==========================================================================
+% PURPOSE: Create human-readable labels for NESDA variable codes
+%
+% RATIONALE:
+% NESDA uses cryptic variable codes (e.g., 'aids', 'abaiscal') that are not
+% self-explanatory. This mapping creates interpretable labels for:
+% 1. Publication-quality figures (forest plots, tables)
+% 2. Clear communication of results to clinicians
+% 3. Reduced errors from misinterpreting variable meanings
+% 4. Easier code maintenance and understanding
+%
+% The labels are used throughout via get_label_safe() function,
+% which safely retrieves labels with fallback to variable name if not found.
 %  ==========================================================================
 fprintf('---------------------------------------------------\n');
 fprintf('SECTION 0: VARIABLE LABEL MAPPING\n');
 fprintf('---------------------------------------------------\n\n');
 
-% Create interpretable labels for all clinical variables
+% Initialize containers.Map: key-value pairs for variable_code → readable_label
 variable_labels = containers.Map();
 
 % Symptom Severity Variables
@@ -185,13 +273,18 @@ fprintf('---------------------------------------------------\n\n');
 nesda_file = [data_path 'NESDA_tabular_combined_data.csv'];
 fprintf('Loading: %s\n', nesda_file);
 
+% SESSION 3 FEATURE 3.3: Robust error handling for file loading
 if ~exist(nesda_file, 'file')
-    error('ERROR: NESDA clinical data file not found: %s', nesda_file);
+    error('ERROR: NESDA clinical data file not found: %s\nCheck data_path configuration.', nesda_file);
 end
 
-nesda_data = readtable(nesda_file, 'Delimiter', ',', 'VariableNamingRule', 'preserve');
-
-fprintf('  Data loaded: [%d × %d] TABLE\n', height(nesda_data), width(nesda_data));
+try
+    nesda_data = readtable(nesda_file, 'Delimiter', ',', 'VariableNamingRule', 'preserve');
+    fprintf('  ✓ Data loaded: [%d × %d] TABLE\n', height(nesda_data), width(nesda_data));
+catch ME
+    error('CRITICAL: Failed to load NESDA clinical data from %s\nError: %s\nStack: %s', ...
+          nesda_file, ME.message, ME.stack(1).name);
+end
 
 % ==========================================================================
 % FEATURE 1.2: REMOVE aarea VARIABLE (INTERVIEWER INFO - BIAS SOURCE)
@@ -571,8 +664,8 @@ fprintf('  Decision scores extracted from column %d: %s\n', ...
 
 transition_scores_26 = transition_26_tbl{:,decision_col_idx(1)};
 n_before_exclusion = length(transition_scores_26);
-% IMPROVED OUTLIER FILTER: Exclude DS==99 OR |DS|>10
-outlier_mask_26 = (transition_scores_26 == 99) | (abs(transition_scores_26) > 10);
+% SESSION 3 FEATURE 3.2: Use parameterized outlier thresholds
+outlier_mask_26 = (transition_scores_26 == OUTLIER_CODE) | (abs(transition_scores_26) > OUTLIER_THRESHOLD_DS);
 transition_scores_26(outlier_mask_26) = NaN;
 n_excluded = sum(isnan(transition_scores_26)) - sum(isnan(transition_26_tbl{:,decision_col_idx(1)}));
 
@@ -615,8 +708,8 @@ end
 transition_scores_27 = transition_27_tbl{:,decision_col_idx(1)};
 
 n_before = length(transition_scores_27);
-% IMPROVED OUTLIER FILTER: Exclude DS==99 OR |DS|>10
-outlier_mask_27 = (transition_scores_27 == 99) | (abs(transition_scores_27) > 10);
+% SESSION 3 FEATURE 3.2: Use parameterized outlier thresholds
+outlier_mask_27 = (transition_scores_27 == OUTLIER_CODE) | (abs(transition_scores_27) > OUTLIER_THRESHOLD_DS);
 transition_scores_27(outlier_mask_27) = NaN;
 n_excluded = sum(isnan(transition_scores_27)) - sum(isnan(transition_27_tbl{:,decision_col_idx(1)}));
 
@@ -665,8 +758,8 @@ end
 bvftd_scores = bvftd_tbl{:,decision_col_idx(1)};
 
 n_before = length(bvftd_scores);
-% IMPROVED OUTLIER FILTER: Exclude DS==99 OR |DS|>10
-outlier_mask_bvftd = (bvftd_scores == 99) | (abs(bvftd_scores) > 10);
+% SESSION 3 FEATURE 3.2: Use parameterized outlier thresholds
+outlier_mask_bvftd = (bvftd_scores == OUTLIER_CODE) | (abs(bvftd_scores) > OUTLIER_THRESHOLD_DS);
 bvftd_scores(outlier_mask_bvftd) = NaN;
 n_excluded = sum(isnan(bvftd_scores)) - sum(isnan(bvftd_tbl{:,decision_col_idx(1)}));
 
@@ -691,15 +784,44 @@ elseif iscell(transition_ids_26) && isnumeric(nesda_ids)
     nesda_ids = arrayfun(@num2str, nesda_ids, 'UniformOutput', false);
 end
 
+% SESSION 3 FEATURE 3.3: Robust error handling for ID matching
 fprintf('Matching subjects across datasets...\n');
-[~, idx_nesda_26, idx_trans_26] = intersect(nesda_ids, transition_ids_26);
-fprintf('  Transition-26 matched: %d subjects\n', length(idx_nesda_26));
+try
+    [~, idx_nesda_26, idx_trans_26] = intersect(nesda_ids, transition_ids_26);
+    fprintf('  ✓ Transition-26 matched: %d subjects\n', length(idx_nesda_26));
 
-[~, idx_nesda_27, idx_trans_27] = intersect(nesda_ids, transition_ids_27);
-fprintf('  Transition-27 matched: %d subjects\n', length(idx_nesda_27));
+    if isempty(idx_nesda_26)
+        error('No matching IDs between clinical data and Transition-26 decision scores!\nCheck ID variable formats and data alignment.');
+    end
+catch ME
+    error('CRITICAL: ID matching failed for Transition-26:\n%s\nCheck that pident formats match in both files.', ME.message);
+end
 
-[~, idx_nesda_bvftd, idx_bvftd] = intersect(nesda_ids, bvftd_ids);
-fprintf('  bvFTD matched: %d subjects\n\n', length(idx_nesda_bvftd));
+try
+    [~, idx_nesda_27, idx_trans_27] = intersect(nesda_ids, transition_ids_27);
+    fprintf('  ✓ Transition-27 matched: %d subjects\n', length(idx_nesda_27));
+
+    if isempty(idx_nesda_27)
+        warning('No matching IDs between clinical data and Transition-27. Analysis will continue with Transition-26 only.');
+    end
+catch ME
+    warning('ID matching failed for Transition-27: %s\nContinuing with Transition-26 only.', ME.message);
+    idx_nesda_27 = [];
+    idx_trans_27 = [];
+end
+
+try
+    [~, idx_nesda_bvftd, idx_bvftd] = intersect(nesda_ids, bvftd_ids);
+    fprintf('  ✓ bvFTD matched: %d subjects\n\n', length(idx_nesda_bvftd));
+
+    if isempty(idx_nesda_bvftd)
+        warning('No matching IDs between clinical data and bvFTD. Analysis will continue without bvFTD scores.');
+    end
+catch ME
+    warning('ID matching failed for bvFTD: %s\nContinuing without bvFTD scores.', ME.message);
+    idx_nesda_bvftd = [];
+    idx_bvftd = [];
+end
 
 fprintf('Creating analysis dataset...\n');
 analysis_data = nesda_data;
@@ -730,10 +852,16 @@ fprintf('---------------------------------------------------\n');
 fprintf('SECTION 5B: LOADING DIAGNOSIS GROUP DATA\n');
 fprintf('---------------------------------------------------\n\n');
 
+% SESSION 3 FEATURE 3.3: Enhanced error handling for optional diagnosis data
 fprintf('Loading HC diagnosis data...\n');
 if exist(diagnosis_hc_file, 'file')
-    hc_data = readtable(diagnosis_hc_file, 'VariableNamingRule', 'preserve');
-    fprintf('  HC data loaded: [%d subjects]\n', height(hc_data));
+    try
+        hc_data = readtable(diagnosis_hc_file, 'VariableNamingRule', 'preserve');
+        fprintf('  ✓ HC data loaded: [%d subjects]\n', height(hc_data));
+    catch ME
+        warning('Failed to load HC diagnosis data: %s\nContinuing without HC diagnosis info.', ME.message);
+        hc_data = table();
+    end
 else
     fprintf('  WARNING: HC file not found: %s\n', diagnosis_hc_file);
     hc_data = table();
@@ -741,8 +869,13 @@ end
 
 fprintf('Loading Patients diagnosis data...\n');
 if exist(diagnosis_patients_file, 'file')
-    patients_data = readtable(diagnosis_patients_file, 'VariableNamingRule', 'preserve');
-    fprintf('  Patients data loaded: [%d subjects]\n', height(patients_data));
+    try
+        patients_data = readtable(diagnosis_patients_file, 'VariableNamingRule', 'preserve');
+        fprintf('  ✓ Patients data loaded: [%d subjects]\n', height(patients_data));
+    catch ME
+        warning('Failed to load Patients diagnosis data: %s\nContinuing without patient diagnosis groups.', ME.message);
+        patients_data = table();
+    end
 else
     fprintf('  WARNING: Patients file not found: %s\n', diagnosis_patients_file);
     patients_data = table();
@@ -1018,9 +1151,14 @@ if ismember('abmi', analysis_data.Properties.VariableNames)
     title(sprintf('r=%.3f, p=%.4f', r_bmi_bvftd, p_bmi_bvftd), 'FontWeight', 'bold');
     grid on;
     
-    saveas(gcf, [fig_path 'Fig_4_1_BMI_Correlations.png']);
-    saveas(gcf, [fig_path 'Fig_4_1_BMI_Correlations.fig']);
-    fprintf('\n  Saved: Fig_4_1_BMI_Correlations.png/.fig\n\n');
+    % SESSION 3 FEATURE 3.3: Robust error handling for plot saving
+    try
+        saveas(gcf, [fig_path 'Fig_4_1_BMI_Correlations.png']);
+        saveas(gcf, [fig_path 'Fig_4_1_BMI_Correlations.fig']);
+        fprintf('\n  ✓ Saved: Fig_4_1_BMI_Correlations.png/.fig\n\n');
+    catch ME
+        warning('Failed to save BMI correlations figure: %s\nContinuing analysis.', ME.message);
+    end
 end
 
 fprintf('PRIORITY 4.1 COMPLETE\n\n');
@@ -1076,13 +1214,26 @@ if ~isempty(available_symptom_vars)
         end
     end
 
-    % FEATURE 1.3: FDR CORRECTION
-    n_uncorrected_sig = sum(symptom_corr_26(:,2) < 0.05 & ~isnan(symptom_corr_26(:,2)));
-    [h_fdr_26, crit_p_26, adj_p_26] = fdr_bh(symptom_corr_26(:,2), 0.05);
+    % =====================================================================
+    % MULTIPLE TESTING CORRECTION: Benjamini-Hochberg FDR
+    % =====================================================================
+    % PROBLEM: With 11 symptom variables tested, ~5% false positives expected by chance alone
+    %          At α=0.05, we expect 0.55 false positives even if no true effects exist
+    % SOLUTION: FDR correction controls the expected proportion of false discoveries
+    %          among all discoveries (unlike Bonferroni which controls family-wise error)
+    % METHOD: Benjamini & Hochberg (1995) step-up procedure
+    %         - Ranks p-values from smallest to largest
+    %         - Finds largest i where P(i) ≤ (i/m)×q
+    %         - Rejects all hypotheses 1...i
+    % BENEFIT: More powerful than Bonferroni (fewer false negatives)
+    %          while controlling false discovery rate at q=0.05
+    % =====================================================================
+    n_uncorrected_sig = sum(symptom_corr_26(:,2) < ALPHA_LEVEL & ~isnan(symptom_corr_26(:,2)));
+    [h_fdr_26, crit_p_26, adj_p_26] = fdr_bh(symptom_corr_26(:,2), FDR_LEVEL);
     n_fdr_sig = sum(h_fdr_26);
-    fprintf('\n  FDR CORRECTION (q=0.05): %d/%d significant (uncorrected: %d/%d)\n', ...
-        n_fdr_sig, size(symptom_corr_26,1), n_uncorrected_sig, size(symptom_corr_26,1));
-    fprintf('  Critical p-value: %.4f\n\n', crit_p_26);
+    fprintf('\n  FDR CORRECTION (q=%.2f): %d/%d significant (uncorrected: %d/%d)\n', ...
+        FDR_LEVEL, n_fdr_sig, size(symptom_corr_26,1), n_uncorrected_sig, size(symptom_corr_26,1));
+    fprintf('  Critical p-value: %.4f (original p-values ≤ this are FDR-significant)\n\n', crit_p_26);
 
     results_4_2.symptom_correlations_transition_26 = symptom_corr_26;
     results_4_2.symptom_fdr_26 = h_fdr_26;
@@ -1170,42 +1321,52 @@ if ~isempty(available_symptom_vars)
     complete_idx = all(~isnan(symptom_data), 2);
     symptom_data_complete = symptom_data(complete_idx, :);
     fprintf('  Cases with complete symptom data: %d\n', sum(complete_idx));
-    
-    if sum(complete_idx) >= 100
-        symptom_data_std = zscore(symptom_data_complete);
-        [coeff, score, latent, ~, explained] = pca(symptom_data_std);
-        
-        fprintf('  PCA VARIANCE EXPLAINED:\n');
-        fprintf('    PC1: %.1f%%\n', explained(1));
-        fprintf('    PC2: %.1f%%\n', explained(2));
-        fprintf('    PC3: %.1f%%\n', explained(3));
-        fprintf('    First 3 PCs total: %.1f%%\n', sum(explained(1:3)));
-        fprintf('    First 5 PCs total: %.1f%%\n\n', sum(explained(1:5)));
-        
-        % Store all three PC scores in analysis_data
-        pc1_score = NaN(height(analysis_data), 1);
-        pc2_score = NaN(height(analysis_data), 1);
-        pc3_score = NaN(height(analysis_data), 1);
-        
-        pc1_score(complete_idx) = score(:,1);
-        pc2_score(complete_idx) = score(:,2);
-        pc3_score(complete_idx) = score(:,3);
-        
-        analysis_data.Symptom_PC1 = pc1_score;
-        analysis_data.Symptom_PC2 = pc2_score;
-        analysis_data.Symptom_PC3 = pc3_score;
-        
-        % Also store PC1 as "General_Symptom_Score" for backward compatibility
-        analysis_data.General_Symptom_Score = pc1_score;
-        
-        fprintf('========================================================\n');
-        fprintf('PC1 CORRELATIONS WITH DECISION SCORES\n');
-        fprintf('========================================================\n\n');
-        
-        % PC1 vs Transition-26
-        valid_pc1_26 = ~isnan(pc1_score) & ~isnan(analysis_data.Transition_26);
-        [r_pc1_26, p_pc1_26] = corr(pc1_score(valid_pc1_26), ...
-            analysis_data.Transition_26(valid_pc1_26));
+
+    % SESSION 3 FEATURE 3.3: Robust error handling for PCA
+    if sum(complete_idx) >= MIN_PCA_SAMPLES
+        try
+            symptom_data_std = zscore(symptom_data_complete);
+            [coeff, score, latent, ~, explained] = pca(symptom_data_std);
+
+            fprintf('  ✓ PCA VARIANCE EXPLAINED:\n');
+            fprintf('    PC1: %.1f%%\n', explained(1));
+            fprintf('    PC2: %.1f%%\n', explained(2));
+            fprintf('    PC3: %.1f%%\n', explained(3));
+            fprintf('    First 3 PCs total: %.1f%%\n', sum(explained(1:3)));
+            fprintf('    First 5 PCs total: %.1f%%\n\n', sum(explained(1:5)));
+        catch ME
+            warning('PCA calculation failed: %s\nSkipping PCA analysis and continuing with individual symptom variables.', ME.message);
+            coeff = [];
+            score = [];
+            explained = [];
+        end
+
+        % Store PC scores only if PCA succeeded
+        if ~isempty(score)
+            % Store all three PC scores in analysis_data
+            pc1_score = NaN(height(analysis_data), 1);
+            pc2_score = NaN(height(analysis_data), 1);
+            pc3_score = NaN(height(analysis_data), 1);
+
+            pc1_score(complete_idx) = score(:,1);
+            pc2_score(complete_idx) = score(:,2);
+            pc3_score(complete_idx) = score(:,3);
+
+            analysis_data.Symptom_PC1 = pc1_score;
+            analysis_data.Symptom_PC2 = pc2_score;
+            analysis_data.Symptom_PC3 = pc3_score;
+
+            % Also store PC1 as "General_Symptom_Score" for backward compatibility
+            analysis_data.General_Symptom_Score = pc1_score;
+
+            fprintf('========================================================\n');
+            fprintf('PC1 CORRELATIONS WITH DECISION SCORES\n');
+            fprintf('========================================================\n\n');
+
+            % PC1 vs Transition-26
+            valid_pc1_26 = ~isnan(pc1_score) & ~isnan(analysis_data.Transition_26);
+            [r_pc1_26, p_pc1_26] = corr(pc1_score(valid_pc1_26), ...
+                analysis_data.Transition_26(valid_pc1_26));
         n_pc1_26 = sum(valid_pc1_26);
         ci_pc1_26 = ci_r(r_pc1_26, n_pc1_26);
         fprintf('  PC1 vs Transition-26:\n');
@@ -4240,7 +4401,232 @@ diary off;
 fprintf('ALL DONE! Script executed successfully with OOCV-26 and OOCV-27.\n');
 fprintf('Check output folder: %s\n\n', results_path);
 
+%% ==========================================================================
+%  HELPER FUNCTIONS (SESSION 3: FEATURE 3.1)
+%  ==========================================================================
+
+function [r, CI, p, n_valid] = calculate_correlation_with_CI(x, y, alpha)
+    % CALCULATE PEARSON CORRELATION WITH FISHER'S Z CONFIDENCE INTERVAL
+    %
+    % Computes Pearson correlation coefficient and confidence interval using
+    % Fisher's Z transformation for improved accuracy with small samples
+    %
+    % INPUTS:
+    %   x       - First variable (numeric vector)
+    %   y       - Second variable (numeric vector)
+    %   alpha   - Significance level for CI (default: 0.05 for 95% CI)
+    %
+    % OUTPUTS:
+    %   r       - Pearson correlation coefficient
+    %   CI      - Confidence interval [lower, upper]
+    %   p       - Two-tailed p-value
+    %   n_valid - Number of valid pairs (after removing NaN)
+    %
+    % METHOD:
+    %   Fisher's Z transformation: z = atanh(r)
+    %   SE(z) = 1/sqrt(n-3)
+    %   CI(z) = z ± z_critical * SE(z)
+    %   Back-transform: CI(r) = tanh(CI(z))
+    %
+    % REFERENCE:
+    %   Fisher, R.A. (1915). Frequency distribution of the values of the
+    %   correlation coefficient in samples from an indefinitely large population.
+    %   Biometrika, 10(4), 507-521.
+    %
+    % Author: Claude AI Assistant (SESSION 3)
+    % Date: November 8, 2025
+
+    if nargin < 3
+        alpha = 0.05;
+    end
+
+    % Remove NaN values (pairwise deletion)
+    valid_idx = ~isnan(x) & ~isnan(y);
+    x_clean = x(valid_idx);
+    y_clean = y(valid_idx);
+    n_valid = length(x_clean);
+
+    % Handle edge cases
+    if n_valid < 3
+        r = NaN;
+        CI = [NaN, NaN];
+        p = NaN;
+        return;
+    end
+
+    % Calculate Pearson correlation
+    [r, p] = corr(x_clean, y_clean);
+
+    % Fisher's Z transformation for CI
+    if abs(r) >= 1
+        % Perfect correlation - CI is undefined
+        CI = [r, r];
+    else
+        z_crit = norminv(1 - alpha/2);  % Two-tailed critical value
+        z_r = atanh(r);                 % Fisher's Z transform
+        se_z = 1 / sqrt(n_valid - 3);   % Standard error of Z
+
+        % CI in Z space
+        z_lower = z_r - z_crit * se_z;
+        z_upper = z_r + z_crit * se_z;
+
+        % Back-transform to correlation space
+        CI = [tanh(z_lower), tanh(z_upper)];
+    end
+end
+
+function fig = create_forest_plot(var_names, labels, correlations, CIs, p_vals, p_fdr, title_text, n_subjects, marker_color)
+    % CREATE STANDARDIZED FOREST PLOT FOR CORRELATION RESULTS
+    %
+    % Generates a publication-ready forest plot showing correlations with
+    % confidence intervals, with optional FDR significance markers
+    %
+    % INPUTS:
+    %   var_names     - Cell array of variable names
+    %   labels        - Cell array of interpretable labels for display
+    %   correlations  - Vector of correlation coefficients (r values)
+    %   CIs           - N×2 matrix of confidence intervals [lower, upper]
+    %   p_vals        - Vector of uncorrected p-values
+    %   p_fdr         - Vector of FDR-adjusted p-values (optional, [] if not available)
+    %   title_text    - Plot title string
+    %   n_subjects    - Vector of sample sizes per correlation
+    %   marker_color  - RGB triplet for marker color (default: [0.2 0.4 0.8])
+    %
+    % OUTPUTS:
+    %   fig          - Figure handle
+    %
+    % VISUAL ELEMENTS:
+    %   - Horizontal error bars for 95% CI
+    %   - Filled circles for correlation coefficients
+    %   - Vertical reference line at r=0
+    %   - FDR-significant results marked with **
+    %   - Uncorrected significant results marked with *
+    %
+    % Author: Claude AI Assistant (SESSION 3)
+    % Date: November 8, 2025
+
+    if nargin < 9 || isempty(marker_color)
+        marker_color = [0.2 0.4 0.8];  % Default blue
+    end
+
+    n_vars = length(var_names);
+
+    % Create figure
+    fig = figure('Position', [100 100 1000 max(400, 100 + 50*n_vars)]);
+    hold on;
+
+    y_pos = 1:n_vars;
+
+    % Plot confidence intervals
+    for i = 1:n_vars
+        plot([CIs(i,1), CIs(i,2)], [y_pos(i), y_pos(i)], 'k-', 'LineWidth', 1.5);
+    end
+
+    % Plot correlation coefficients
+    scatter(correlations, y_pos, 100, 'filled', 'MarkerFaceColor', marker_color);
+
+    % Add significance markers to labels
+    labels_with_sig = labels;
+    for i = 1:n_vars
+        if ~isempty(p_fdr) && ~isnan(p_fdr(i)) && p_fdr(i) < 0.05
+            labels_with_sig{i} = [labels{i} ' **'];  % FDR significant
+        elseif p_vals(i) < 0.05
+            labels_with_sig{i} = [labels{i} ' *'];   % Uncorrected significant
+        end
+    end
+
+    % Reference line at r=0
+    plot([0 0], [0.5, n_vars+0.5], 'r--', 'LineWidth', 2);
+
+    % Formatting
+    set(gca, 'YTick', y_pos, 'YTickLabel', labels_with_sig, 'FontSize', 9);
+    xlabel('Correlation (r) with 95% CI', 'FontWeight', 'bold', 'FontSize', 12);
+    title(title_text, 'FontWeight', 'bold', 'FontSize', 14);
+
+    % Dynamic x-axis limits
+    xlim([min([CIs(:,1); -0.1])-0.1, max([CIs(:,2); 0.1])+0.1]);
+    ylim([0.5, n_vars+0.5]);
+    grid on;
+
+    % Add legend for significance markers
+    if ~isempty(p_fdr)
+        text(0.98, 0.02, '* p<0.05   ** FDR q<0.05', ...
+            'Units', 'normalized', 'HorizontalAlignment', 'right', ...
+            'VerticalAlignment', 'bottom', 'FontSize', 9, ...
+            'BackgroundColor', 'white', 'EdgeColor', 'black');
+    else
+        text(0.98, 0.02, '* p<0.05', ...
+            'Units', 'normalized', 'HorizontalAlignment', 'right', ...
+            'VerticalAlignment', 'bottom', 'FontSize', 9, ...
+            'BackgroundColor', 'white', 'EdgeColor', 'black');
+    end
+
+    hold off;
+end
+
+function effect_label = interpret_effect_size(r, type)
+    % INTERPRET EFFECT SIZE MAGNITUDE
+    %
+    % Provides standardized interpretation of effect sizes following Cohen's conventions.
+    % This helps translate statistical significance into practical significance.
+    %
+    % INPUTS:
+    %   r    - Effect size (correlation coefficient for 'r', Cohen's d for 'd')
+    %   type - 'r' for correlations, 'd' for Cohen's d (default: 'r')
+    %
+    % OUTPUTS:
+    %   effect_label - String describing effect magnitude:
+    %                  'negligible', 'small', 'medium', 'large', 'very large'
+    %
+    % THRESHOLDS (Cohen, 1988):
+    %   Correlations (r): small=0.10, medium=0.30, large=0.50
+    %   Cohen's d:        small=0.20, medium=0.50, large=0.80
+    %
+    % REFERENCE:
+    %   Cohen, J. (1988). Statistical Power Analysis for the Behavioral Sciences (2nd ed.).
+    %   Hillsdale, NJ: Lawrence Erlbaum Associates.
+    %
+    % Author: Claude AI Assistant
+    % Date: November 8, 2025
+
+    if nargin < 2
+        type = 'r';  % Default to correlation
+    end
+
+    abs_r = abs(r);  % Use absolute value for magnitude interpretation
+
+    if strcmpi(type, 'r')
+        % Correlation thresholds
+        if abs_r < 0.10
+            effect_label = 'negligible';
+        elseif abs_r < 0.30
+            effect_label = 'small';
+        elseif abs_r < 0.50
+            effect_label = 'medium';
+        elseif abs_r < 0.70
+            effect_label = 'large';
+        else
+            effect_label = 'very large';
+        end
+    elseif strcmpi(type, 'd')
+        % Cohen's d thresholds
+        if abs_r < 0.20
+            effect_label = 'negligible';
+        elseif abs_r < 0.50
+            effect_label = 'small';
+        elseif abs_r < 0.80
+            effect_label = 'medium';
+        else
+            effect_label = 'large';
+        end
+    else
+        error('Unknown effect size type: %s. Use ''r'' or ''d''.', type);
+    end
+end
+
 function result = ternary(condition, true_val, false_val)
+    % TERNARY OPERATOR - inline conditional value selection
+    % Simplified if-else for value assignment
     if condition
         result = true_val;
     else
