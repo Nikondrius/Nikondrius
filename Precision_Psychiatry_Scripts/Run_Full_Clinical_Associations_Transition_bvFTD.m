@@ -1728,16 +1728,18 @@ if ~isempty(available_symptom_vars)
                 title(sprintf('%s vs %s\nr=%.3f, p=%.4f', pc_label, ds_label, r_val, p_val), ...
                     'FontWeight', 'bold');
                 grid on;
-            end
-            
+            end  % end for i = 1:n_sig from line 1677
+
             saveas(gcf, [fig_path 'Fig_4_2_PCA_Significant_Correlations.png']);
             saveas(gcf, [fig_path 'Fig_4_2_PCA_Significant_Correlations.fig']);
             fprintf('  Saved: Fig_4_2_PCA_Significant_Correlations.png/.fig\n');
-        end
-        
+        end  % end if ~isempty(sig_pcs) from line 1670
+
         fprintf('\n');
-    end
-    
+    end  % end if ~isempty(score) from line 1345
+
+    end  % end if sum(complete_idx) >= MIN_PCA_SAMPLES from line 1326
+
     % Create interpretable labels for heatmap
     symptom_labels = cellfun(@(x) get_label(x), symptom_names_clean, 'UniformOutput', false);
     
@@ -4475,6 +4477,66 @@ function [r, CI, p, n_valid] = calculate_correlation_with_CI(x, y, alpha)
     end
 end
 
+function effect_label = interpret_effect_size(r, type)
+    % INTERPRET EFFECT SIZE MAGNITUDE
+    %
+    % Provides standardized interpretation of effect sizes following Cohen's conventions.
+    % This helps translate statistical significance into practical significance.
+    %
+    % INPUTS:
+    %   r    - Effect size (correlation coefficient for 'r', Cohen's d for 'd')
+    %   type - 'r' for correlations, 'd' for Cohen's d (default: 'r')
+    %
+    % OUTPUTS:
+    %   effect_label - String describing effect magnitude:
+    %                  'negligible', 'small', 'medium', 'large', 'very large'
+    %
+    % THRESHOLDS (Cohen, 1988):
+    %   Correlations (r): small=0.10, medium=0.30, large=0.50
+    %   Cohen's d:        small=0.20, medium=0.50, large=0.80
+    %
+    % REFERENCE:
+    %   Cohen, J. (1988). Statistical Power Analysis for the Behavioral Sciences (2nd ed.).
+    %   Hillsdale, NJ: Lawrence Erlbaum Associates.
+    %
+    % Author: Claude AI Assistant
+    % Date: November 8, 2025
+
+    if nargin < 2
+        type = 'r';  % Default to correlation
+    end
+
+    abs_r = abs(r);  % Use absolute value for magnitude interpretation
+
+    if strcmpi(type, 'r')
+        % Correlation thresholds
+        if abs_r < 0.10
+            effect_label = 'negligible';
+        elseif abs_r < 0.30
+            effect_label = 'small';
+        elseif abs_r < 0.50
+            effect_label = 'medium';
+        elseif abs_r < 0.70
+            effect_label = 'large';
+        else
+            effect_label = 'very large';
+        end
+    elseif strcmpi(type, 'd')
+        % Cohen's d thresholds
+        if abs_r < 0.20
+            effect_label = 'negligible';
+        elseif abs_r < 0.50
+            effect_label = 'small';
+        elseif abs_r < 0.80
+            effect_label = 'medium';
+        else
+            effect_label = 'large';
+        end
+    else
+        error('Unknown effect size type: %s. Use ''r'' or ''d''.', type);
+    end
+end
+
 function fig = create_forest_plot(var_names, labels, correlations, CIs, p_vals, p_fdr, title_text, n_subjects, marker_color)
     % CREATE STANDARDIZED FOREST PLOT FOR CORRELATION RESULTS
     %
@@ -4562,115 +4624,6 @@ function fig = create_forest_plot(var_names, labels, correlations, CIs, p_vals, 
     end
 
     hold off;
-end
-
-function effect_label = interpret_effect_size(r, type)
-    % INTERPRET EFFECT SIZE MAGNITUDE
-    %
-    % Provides standardized interpretation of effect sizes following Cohen's conventions.
-    % This helps translate statistical significance into practical significance.
-    %
-    % INPUTS:
-    %   r    - Effect size (correlation coefficient for 'r', Cohen's d for 'd')
-    %   type - 'r' for correlations, 'd' for Cohen's d (default: 'r')
-    %
-    % OUTPUTS:
-    %   effect_label - String describing effect magnitude:
-    %                  'negligible', 'small', 'medium', 'large', 'very large'
-    %
-    % THRESHOLDS (Cohen, 1988):
-    %   Correlations (r): small=0.10, medium=0.30, large=0.50
-    %   Cohen's d:        small=0.20, medium=0.50, large=0.80
-    %
-    % REFERENCE:
-    %   Cohen, J. (1988). Statistical Power Analysis for the Behavioral Sciences (2nd ed.).
-    %   Hillsdale, NJ: Lawrence Erlbaum Associates.
-    %
-    % Author: Claude AI Assistant
-    % Date: November 8, 2025
-
-    if nargin < 2
-        type = 'r';  % Default to correlation
-    end
-
-    abs_r = abs(r);  % Use absolute value for magnitude interpretation
-
-    if strcmpi(type, 'r')
-        % Correlation thresholds
-        if abs_r < 0.10
-            effect_label = 'negligible';
-        elseif abs_r < 0.30
-            effect_label = 'small';
-        elseif abs_r < 0.50
-            effect_label = 'medium';
-        elseif abs_r < 0.70
-            effect_label = 'large';
-        else
-            effect_label = 'very large';
-        end
-    elseif strcmpi(type, 'd')
-        % Cohen's d thresholds
-        if abs_r < 0.20
-            effect_label = 'negligible';
-        elseif abs_r < 0.50
-            effect_label = 'small';
-        elseif abs_r < 0.80
-            effect_label = 'medium';
-        else
-            effect_label = 'large';
-        end
-    else
-        error('Unknown effect size type: %s. Use ''r'' or ''d''.', type);
-    end
-end
-
-function result = ternary(condition, true_val, false_val)
-    % TERNARY OPERATOR - inline conditional value selection
-    % Simplified if-else for value assignment
-    if condition
-        result = true_val;
-    else
-        result = false_val;
-    end
-end
-
-function cmap = redblue(m)
-    if nargin < 1
-        m = size(get(gcf,'colormap'),1);
-    end
-    
-    if mod(m,2) == 0
-        m1 = m/2;
-        r = [(0:m1-1)'/max(m1-1,1); ones(m1,1)];
-        g = [(0:m1-1)'/max(m1-1,1); (m1-1:-1:0)'/max(m1-1,1)];
-        b = [ones(m1,1); (m1-1:-1:0)'/max(m1-1,1)];
-    else
-        m1 = floor(m/2);
-        r = [(0:m1-1)'/max(m1,1); ones(m-m1,1)];
-        g = [(0:m1-1)'/max(m1,1); (m-m1-1:-1:0)'/max(m-m1-1,1)];
-        b = [ones(m1,1); (m-m1-1:-1:0)'/max(m-m1-1,1)];
-    end
-    
-    cmap = [r g b];
-end
-
-function label = get_label_safe(varname, label_map)
-    % Safe label getter with error handling
-    try
-        if ischar(varname) || isstring(varname)
-            varname = char(varname);
-            if label_map.isKey(varname)
-                label = label_map(varname);
-            else
-                label = varname;
-            end
-        else
-            label = varname;
-        end
-    catch
-        % If anything fails, just return the original variable name
-        label = varname;
-    end
 end
 
 function [h, crit_p, adj_p] = fdr_bh(pvals, q)
@@ -4764,4 +4717,81 @@ function [h, crit_p, adj_p] = fdr_bh(pvals, q)
 
     adj_p = NaN(n, 1);
     adj_p(~nan_mask) = adj_p_unsorted;
+end
+
+function label = get_label_safe(varname, label_map)
+    % SAFE LABEL GETTER WITH ERROR HANDLING
+    % Retrieves human-readable label from variable_labels map with fallback
+    %
+    % INPUTS:
+    %   varname   - Variable name (string or char)
+    %   label_map - containers.Map with variable name → label mappings
+    %
+    % OUTPUT:
+    %   label - Readable label (or original varname if not found)
+
+    try
+        if ischar(varname) || isstring(varname)
+            varname = char(varname);
+            if label_map.isKey(varname)
+                label = label_map(varname);
+            else
+                label = varname;
+            end
+        else
+            label = varname;
+        end
+    catch
+        % If anything fails, just return the original variable name
+        label = varname;
+    end
+end
+
+function cmap = redblue(m)
+    % REDBLUE COLORMAP
+    % Creates a blue-white-red diverging colormap for correlation matrices
+    % Blue represents negative correlations, red represents positive
+    %
+    % INPUT:
+    %   m - Number of colors (default: current figure colormap length)
+    %
+    % OUTPUT:
+    %   cmap - m×3 RGB colormap matrix
+
+    if nargin < 1
+        m = size(get(gcf,'colormap'),1);
+    end
+
+    if mod(m,2) == 0
+        m1 = m/2;
+        r = [(0:m1-1)'/max(m1-1,1); ones(m1,1)];
+        g = [(0:m1-1)'/max(m1-1,1); (m1-1:-1:0)'/max(m1-1,1)];
+        b = [ones(m1,1); (m1-1:-1:0)'/max(m1-1,1)];
+    else
+        m1 = floor(m/2);
+        r = [(0:m1-1)'/max(m1,1); ones(m-m1,1)];
+        g = [(0:m1-1)'/max(m1,1); (m-m1-1:-1:0)'/max(m-m1-1,1)];
+        b = [ones(m1,1); (m-m1-1:-1:0)'/max(m-m1-1,1)];
+    end
+
+    cmap = [r g b];
+end
+
+function result = ternary(condition, true_val, false_val)
+    % TERNARY OPERATOR - inline conditional value selection
+    % Simplified if-else for value assignment
+    %
+    % INPUTS:
+    %   condition - Logical condition to evaluate
+    %   true_val  - Value to return if condition is true
+    %   false_val - Value to return if condition is false
+    %
+    % OUTPUT:
+    %   result - Either true_val or false_val
+
+    if condition
+        result = true_val;
+    else
+        result = false_val;
+    end
 end
