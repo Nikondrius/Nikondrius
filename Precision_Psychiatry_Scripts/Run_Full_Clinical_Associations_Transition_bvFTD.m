@@ -128,7 +128,7 @@ variable_labels('Sexe') = 'Sex (1=M, 2=F)';
 variable_labels('abmi') = 'BMI (kg/m²)';
 variable_labels('aedu') = 'Education (years)';
 variable_labels('amarpart') = 'Marital Status';
-variable_labels('aarea') = 'Geographic Site';
+% NOTE: aarea REMOVED - contains interviewer info (bias source), not patient info
 variable_labels('aLCAsubtype') = 'Metabolic Subtype';
 
 % Alternative names used in analysis (from Section 8B demographics)
@@ -192,6 +192,15 @@ end
 nesda_data = readtable(nesda_file, 'Delimiter', ',', 'VariableNamingRule', 'preserve');
 
 fprintf('  Data loaded: [%d × %d] TABLE\n', height(nesda_data), width(nesda_data));
+
+% ==========================================================================
+% FEATURE 1.2: REMOVE aarea VARIABLE (INTERVIEWER INFO - BIAS SOURCE)
+% ==========================================================================
+if ismember('aarea', nesda_data.Properties.VariableNames)
+    nesda_data = removevars(nesda_data, 'aarea');
+    fprintf('  ✓ Variable aarea removed from analysis (interviewer info, not patient info)\n');
+end
+
 varnames = nesda_data.Properties.VariableNames;
 fprintf('  First 5 variables: %s\n\n', strjoin(varnames(1:min(5,length(varnames))), ', '));
 
@@ -243,7 +252,8 @@ clinical_history_vars = {'acidep10', 'acidep11', 'acidep13', 'acidep14', ...
 
 childhood_adversity_vars = {'ACTI_total', 'ACLEI', 'aseparation', 'adeathparent', 'adivorce'};
 
-demographic_vars = {'Age', 'Sexe', 'abmi', 'aedu', 'amarpart', 'aarea', 'aLCAsubtype'};
+% NOTE: aarea REMOVED - interviewer information (bias source), not patient characteristic
+demographic_vars = {'Age', 'Sexe', 'abmi', 'aedu', 'amarpart', 'aLCAsubtype'};
 
 % CORRECTED: Medication FREQUENCY variables (_fr suffix: 0=No, 1=Infrequent, 2=Frequent)
 medication_frequency_vars = {'assri_fr', 'abenzo_fr', 'atca_fr', 'apsychotropic_fr', ...
@@ -1043,7 +1053,7 @@ if ~isempty(available_symptom_vars)
     fprintf('CORRELATIONS WITH TRANSITION-26:\n');
     fprintf('  Variable                     r        p      n\n');
     fprintf('  ----------------------------------------\n');
-    
+
     symptom_corr_26 = [];
     for i = 1:length(symptom_names_clean)
         valid_idx = ~isnan(symptom_data(:,i)) & ~isnan(analysis_data.Transition_26);
@@ -1052,7 +1062,7 @@ if ~isempty(available_symptom_vars)
             n = sum(valid_idx);
             ci = ci_r(r, n);
             symptom_corr_26 = [symptom_corr_26; r, p, n, ci(1), ci(2)];
-            
+
             fprintf('  %-25s %7.3f %7.4f %5d', symptom_names_clean{i}, r, p, n);
             if p < 0.05
                 fprintf(' *\n');
@@ -1065,13 +1075,23 @@ if ~isempty(available_symptom_vars)
                 symptom_names_clean{i}, sum(valid_idx));
         end
     end
-    fprintf('\n');
+
+    % FEATURE 1.3: FDR CORRECTION
+    n_uncorrected_sig = sum(symptom_corr_26(:,2) < 0.05 & ~isnan(symptom_corr_26(:,2)));
+    [h_fdr_26, crit_p_26, adj_p_26] = fdr_bh(symptom_corr_26(:,2), 0.05);
+    n_fdr_sig = sum(h_fdr_26);
+    fprintf('\n  FDR CORRECTION (q=0.05): %d/%d significant (uncorrected: %d/%d)\n', ...
+        n_fdr_sig, size(symptom_corr_26,1), n_uncorrected_sig, size(symptom_corr_26,1));
+    fprintf('  Critical p-value: %.4f\n\n', crit_p_26);
+
     results_4_2.symptom_correlations_transition_26 = symptom_corr_26;
+    results_4_2.symptom_fdr_26 = h_fdr_26;
+    results_4_2.symptom_adj_p_26 = adj_p_26;
     
     fprintf('CORRELATIONS WITH TRANSITION-27:\n');
     fprintf('  Variable                     r        p      n\n');
     fprintf('  ----------------------------------------\n');
-    
+
     symptom_corr_27 = [];
     for i = 1:length(symptom_names_clean)
         valid_idx = ~isnan(symptom_data(:,i)) & ~isnan(analysis_data.Transition_27);
@@ -1080,7 +1100,7 @@ if ~isempty(available_symptom_vars)
             n = sum(valid_idx);
             ci = ci_r(r, n);
             symptom_corr_27 = [symptom_corr_27; r, p, n, ci(1), ci(2)];
-            
+
             fprintf('  %-25s %7.3f %7.4f %5d', symptom_names_clean{i}, r, p, n);
             if p < 0.05
                 fprintf(' *\n');
@@ -1091,13 +1111,23 @@ if ~isempty(available_symptom_vars)
             symptom_corr_27 = [symptom_corr_27; NaN, NaN, sum(valid_idx), NaN, NaN];
         end
     end
-    fprintf('\n');
+
+    % FEATURE 1.3: FDR CORRECTION
+    n_uncorrected_sig = sum(symptom_corr_27(:,2) < 0.05 & ~isnan(symptom_corr_27(:,2)));
+    [h_fdr_27, crit_p_27, adj_p_27] = fdr_bh(symptom_corr_27(:,2), 0.05);
+    n_fdr_sig = sum(h_fdr_27);
+    fprintf('\n  FDR CORRECTION (q=0.05): %d/%d significant (uncorrected: %d/%d)\n', ...
+        n_fdr_sig, size(symptom_corr_27,1), n_uncorrected_sig, size(symptom_corr_27,1));
+    fprintf('  Critical p-value: %.4f\n\n', crit_p_27);
+
     results_4_2.symptom_correlations_transition_27 = symptom_corr_27;
+    results_4_2.symptom_fdr_27 = h_fdr_27;
+    results_4_2.symptom_adj_p_27 = adj_p_27;
     
     fprintf('CORRELATIONS WITH bvFTD:\n');
     fprintf('  Variable                     r        p      n\n');
     fprintf('  ----------------------------------------\n');
-    
+
     symptom_corr_bvftd = [];
     for i = 1:length(symptom_names_clean)
         valid_idx = ~isnan(symptom_data(:,i)) & ~isnan(analysis_data.bvFTD);
@@ -1106,7 +1136,7 @@ if ~isempty(available_symptom_vars)
             n = sum(valid_idx);
             ci = ci_r(r, n);
             symptom_corr_bvftd = [symptom_corr_bvftd; r, p, n, ci(1), ci(2)];
-            
+
             fprintf('  %-25s %7.3f %7.4f %5d', symptom_names_clean{i}, r, p, n);
             if p < 0.05
                 fprintf(' *\n');
@@ -1117,8 +1147,18 @@ if ~isempty(available_symptom_vars)
             symptom_corr_bvftd = [symptom_corr_bvftd; NaN, NaN, sum(valid_idx), NaN, NaN];
         end
     end
-    fprintf('\n');
+
+    % FEATURE 1.3: FDR CORRECTION
+    n_uncorrected_sig = sum(symptom_corr_bvftd(:,2) < 0.05 & ~isnan(symptom_corr_bvftd(:,2)));
+    [h_fdr_bvftd, crit_p_bvftd, adj_p_bvftd] = fdr_bh(symptom_corr_bvftd(:,2), 0.05);
+    n_fdr_sig = sum(h_fdr_bvftd);
+    fprintf('\n  FDR CORRECTION (q=0.05): %d/%d significant (uncorrected: %d/%d)\n', ...
+        n_fdr_sig, size(symptom_corr_bvftd,1), n_uncorrected_sig, size(symptom_corr_bvftd,1));
+    fprintf('  Critical p-value: %.4f\n\n', crit_p_bvftd);
+
     results_4_2.symptom_correlations_bvftd = symptom_corr_bvftd;
+    results_4_2.symptom_fdr_bvftd = h_fdr_bvftd;
+    results_4_2.symptom_adj_p_bvftd = adj_p_bvftd;
     
     %% ======================================================================
     %  ENHANCED PCA ANALYSIS - PC1, PC2, PC3 CORRELATIONS
@@ -1577,21 +1617,27 @@ if ~isempty(available_symptom_vars)
     symptom_corr_summary.Variable = symptom_names_clean';
     symptom_corr_summary.Transition_26_r = symptom_corr_26(:,1);
     symptom_corr_summary.Transition_26_p = symptom_corr_26(:,2);
+    symptom_corr_summary.Transition_26_p_FDR = adj_p_26;
+    symptom_corr_summary.Transition_26_FDR_significant = h_fdr_26;
     symptom_corr_summary.Transition_26_n = symptom_corr_26(:,3);
     symptom_corr_summary.Transition_26_CI_lower = symptom_corr_26(:,4);
     symptom_corr_summary.Transition_26_CI_upper = symptom_corr_26(:,5);
     symptom_corr_summary.Transition_27_r = symptom_corr_27(:,1);
     symptom_corr_summary.Transition_27_p = symptom_corr_27(:,2);
+    symptom_corr_summary.Transition_27_p_FDR = adj_p_27;
+    symptom_corr_summary.Transition_27_FDR_significant = h_fdr_27;
     symptom_corr_summary.Transition_27_n = symptom_corr_27(:,3);
     symptom_corr_summary.Transition_27_CI_lower = symptom_corr_27(:,4);
     symptom_corr_summary.Transition_27_CI_upper = symptom_corr_27(:,5);
     symptom_corr_summary.bvFTD_r = symptom_corr_bvftd(:,1);
     symptom_corr_summary.bvFTD_p = symptom_corr_bvftd(:,2);
+    symptom_corr_summary.bvFTD_p_FDR = adj_p_bvftd;
+    symptom_corr_summary.bvFTD_FDR_significant = h_fdr_bvftd;
     symptom_corr_summary.bvFTD_n = symptom_corr_bvftd(:,3);
     symptom_corr_summary.bvFTD_CI_lower = symptom_corr_bvftd(:,4);
     symptom_corr_summary.bvFTD_CI_upper = symptom_corr_bvftd(:,5);
     writetable(symptom_corr_summary, [data_out_path 'Summary_Symptom_Correlations.csv']);
-    fprintf('  Saved: Summary_Symptom_Correlations.csv\n');
+    fprintf('  Saved: Summary_Symptom_Correlations.csv (with FDR correction)\n');
     
 end
 
@@ -1879,26 +1925,47 @@ if ~isempty(available_clinical_history_vars)
     results_4_3.clinical_history_correlations_26 = clinical_corr_26;
     results_4_3.clinical_history_correlations_27 = clinical_corr_27;
     results_4_3.clinical_history_correlations_bvftd = clinical_corr_bvftd;
-    
+
+    % FEATURE 1.3: FDR CORRECTION
+    [h_fdr_clin_26, crit_p_clin_26, adj_p_clin_26] = fdr_bh(clinical_corr_26(:,2), 0.05);
+    [h_fdr_clin_27, crit_p_clin_27, adj_p_clin_27] = fdr_bh(clinical_corr_27(:,2), 0.05);
+    [h_fdr_clin_bvftd, crit_p_clin_bvftd, adj_p_clin_bvftd] = fdr_bh(clinical_corr_bvftd(:,2), 0.05);
+    fprintf('\n  FDR CORRECTION (q=0.05):\n');
+    fprintf('    Trans-26: %d/%d significant (uncorrected: %d/%d)\n', ...
+        sum(h_fdr_clin_26), length(h_fdr_clin_26), ...
+        sum(clinical_corr_26(:,2) < 0.05 & ~isnan(clinical_corr_26(:,2))), length(h_fdr_clin_26));
+    fprintf('    Trans-27: %d/%d significant (uncorrected: %d/%d)\n', ...
+        sum(h_fdr_clin_27), length(h_fdr_clin_27), ...
+        sum(clinical_corr_27(:,2) < 0.05 & ~isnan(clinical_corr_27(:,2))), length(h_fdr_clin_27));
+    fprintf('    bvFTD: %d/%d significant (uncorrected: %d/%d)\n\n', ...
+        sum(h_fdr_clin_bvftd), length(h_fdr_clin_bvftd), ...
+        sum(clinical_corr_bvftd(:,2) < 0.05 & ~isnan(clinical_corr_bvftd(:,2))), length(h_fdr_clin_bvftd));
+
     clinical_summary = table();
     clinical_summary.Variable = available_clinical_history_vars';
     clinical_summary.Transition_26_r = clinical_corr_26(:,1);
     clinical_summary.Transition_26_p = clinical_corr_26(:,2);
+    clinical_summary.Transition_26_p_FDR = adj_p_clin_26;
+    clinical_summary.Transition_26_FDR_significant = h_fdr_clin_26;
     clinical_summary.Transition_26_n = clinical_corr_26(:,3);
     clinical_summary.Transition_26_CI_lower = clinical_corr_26(:,4);
     clinical_summary.Transition_26_CI_upper = clinical_corr_26(:,5);
     clinical_summary.Transition_27_r = clinical_corr_27(:,1);
     clinical_summary.Transition_27_p = clinical_corr_27(:,2);
+    clinical_summary.Transition_27_p_FDR = adj_p_clin_27;
+    clinical_summary.Transition_27_FDR_significant = h_fdr_clin_27;
     clinical_summary.Transition_27_n = clinical_corr_27(:,3);
     clinical_summary.Transition_27_CI_lower = clinical_corr_27(:,4);
     clinical_summary.Transition_27_CI_upper = clinical_corr_27(:,5);
     clinical_summary.bvFTD_r = clinical_corr_bvftd(:,1);
     clinical_summary.bvFTD_p = clinical_corr_bvftd(:,2);
+    clinical_summary.bvFTD_p_FDR = adj_p_clin_bvftd;
+    clinical_summary.bvFTD_FDR_significant = h_fdr_clin_bvftd;
     clinical_summary.bvFTD_n = clinical_corr_bvftd(:,3);
     clinical_summary.bvFTD_CI_lower = clinical_corr_bvftd(:,4);
     clinical_summary.bvFTD_CI_upper = clinical_corr_bvftd(:,5);
     writetable(clinical_summary, [data_out_path 'Summary_Clinical_History_Correlations.csv']);
-    fprintf('  Saved: Summary_Clinical_History_Correlations.csv\n');
+    fprintf('  Saved: Summary_Clinical_History_Correlations.csv (with FDR correction)\n');
 end
 
 if ~isempty(available_childhood_vars)
@@ -1963,26 +2030,47 @@ if ~isempty(available_childhood_vars)
     results_4_3.childhood_adversity_correlations_26 = childhood_corr_26;
     results_4_3.childhood_adversity_correlations_27 = childhood_corr_27;
     results_4_3.childhood_adversity_correlations_bvftd = childhood_corr_bvftd;
-    
+
+    % FEATURE 1.3: FDR CORRECTION
+    [h_fdr_child_26, crit_p_child_26, adj_p_child_26] = fdr_bh(childhood_corr_26(:,2), 0.05);
+    [h_fdr_child_27, crit_p_child_27, adj_p_child_27] = fdr_bh(childhood_corr_27(:,2), 0.05);
+    [h_fdr_child_bvftd, crit_p_child_bvftd, adj_p_child_bvftd] = fdr_bh(childhood_corr_bvftd(:,2), 0.05);
+    fprintf('\n  FDR CORRECTION (q=0.05):\n');
+    fprintf('    Trans-26: %d/%d significant (uncorrected: %d/%d)\n', ...
+        sum(h_fdr_child_26), length(h_fdr_child_26), ...
+        sum(childhood_corr_26(:,2) < 0.05 & ~isnan(childhood_corr_26(:,2))), length(h_fdr_child_26));
+    fprintf('    Trans-27: %d/%d significant (uncorrected: %d/%d)\n', ...
+        sum(h_fdr_child_27), length(h_fdr_child_27), ...
+        sum(childhood_corr_27(:,2) < 0.05 & ~isnan(childhood_corr_27(:,2))), length(h_fdr_child_27));
+    fprintf('    bvFTD: %d/%d significant (uncorrected: %d/%d)\n\n', ...
+        sum(h_fdr_child_bvftd), length(h_fdr_child_bvftd), ...
+        sum(childhood_corr_bvftd(:,2) < 0.05 & ~isnan(childhood_corr_bvftd(:,2))), length(h_fdr_child_bvftd));
+
     childhood_summary = table();
     childhood_summary.Variable = available_childhood_vars';
     childhood_summary.Transition_26_r = childhood_corr_26(:,1);
     childhood_summary.Transition_26_p = childhood_corr_26(:,2);
+    childhood_summary.Transition_26_p_FDR = adj_p_child_26;
+    childhood_summary.Transition_26_FDR_significant = h_fdr_child_26;
     childhood_summary.Transition_26_n = childhood_corr_26(:,3);
     childhood_summary.Transition_26_CI_lower = childhood_corr_26(:,4);
     childhood_summary.Transition_26_CI_upper = childhood_corr_26(:,5);
     childhood_summary.Transition_27_r = childhood_corr_27(:,1);
     childhood_summary.Transition_27_p = childhood_corr_27(:,2);
+    childhood_summary.Transition_27_p_FDR = adj_p_child_27;
+    childhood_summary.Transition_27_FDR_significant = h_fdr_child_27;
     childhood_summary.Transition_27_n = childhood_corr_27(:,3);
     childhood_summary.Transition_27_CI_lower = childhood_corr_27(:,4);
     childhood_summary.Transition_27_CI_upper = childhood_corr_27(:,5);
     childhood_summary.bvFTD_r = childhood_corr_bvftd(:,1);
     childhood_summary.bvFTD_p = childhood_corr_bvftd(:,2);
+    childhood_summary.bvFTD_p_FDR = adj_p_child_bvftd;
+    childhood_summary.bvFTD_FDR_significant = h_fdr_child_bvftd;
     childhood_summary.bvFTD_n = childhood_corr_bvftd(:,3);
     childhood_summary.bvFTD_CI_lower = childhood_corr_bvftd(:,4);
     childhood_summary.bvFTD_CI_upper = childhood_corr_bvftd(:,5);
     writetable(childhood_summary, [data_out_path 'Summary_Childhood_Adversity_Correlations.csv']);
-    fprintf('  Saved: Summary_Childhood_Adversity_Correlations.csv\n');
+    fprintf('  Saved: Summary_Childhood_Adversity_Correlations.csv (with FDR correction)\n');
 end
 
 fprintf('\nPRIORITY 4.3 COMPLETE\n\n');
@@ -2158,26 +2246,47 @@ if ismember('amarpart', analysis_data.Properties.VariableNames)
 end
 
 if ~isempty(demo_vars_analyzed)
+    % FEATURE 1.3: FDR CORRECTION
+    [h_fdr_demo_26, crit_p_demo_26, adj_p_demo_26] = fdr_bh(demo_corr_26(:,2), 0.05);
+    [h_fdr_demo_27, crit_p_demo_27, adj_p_demo_27] = fdr_bh(demo_corr_27(:,2), 0.05);
+    [h_fdr_demo_bvftd, crit_p_demo_bvftd, adj_p_demo_bvftd] = fdr_bh(demo_corr_bvftd(:,2), 0.05);
+    fprintf('\n  FDR CORRECTION (q=0.05):\n');
+    fprintf('    Trans-26: %d/%d significant (uncorrected: %d/%d)\n', ...
+        sum(h_fdr_demo_26), length(h_fdr_demo_26), ...
+        sum(demo_corr_26(:,2) < 0.05 & ~isnan(demo_corr_26(:,2))), length(h_fdr_demo_26));
+    fprintf('    Trans-27: %d/%d significant (uncorrected: %d/%d)\n', ...
+        sum(h_fdr_demo_27), length(h_fdr_demo_27), ...
+        sum(demo_corr_27(:,2) < 0.05 & ~isnan(demo_corr_27(:,2))), length(h_fdr_demo_27));
+    fprintf('    bvFTD: %d/%d significant (uncorrected: %d/%d)\n\n', ...
+        sum(h_fdr_demo_bvftd), length(h_fdr_demo_bvftd), ...
+        sum(demo_corr_bvftd(:,2) < 0.05 & ~isnan(demo_corr_bvftd(:,2))), length(h_fdr_demo_bvftd));
+
     demographics_summary = table();
     demographics_summary.Variable = demo_vars_analyzed';
     demographics_summary.Transition_26_r = demo_corr_26(:,1);
     demographics_summary.Transition_26_p = demo_corr_26(:,2);
+    demographics_summary.Transition_26_p_FDR = adj_p_demo_26;
+    demographics_summary.Transition_26_FDR_significant = h_fdr_demo_26;
     demographics_summary.Transition_26_n = demo_corr_26(:,3);
     demographics_summary.Transition_26_CI_lower = demo_corr_26(:,4);
     demographics_summary.Transition_26_CI_upper = demo_corr_26(:,5);
     demographics_summary.Transition_27_r = demo_corr_27(:,1);
     demographics_summary.Transition_27_p = demo_corr_27(:,2);
+    demographics_summary.Transition_27_p_FDR = adj_p_demo_27;
+    demographics_summary.Transition_27_FDR_significant = h_fdr_demo_27;
     demographics_summary.Transition_27_n = demo_corr_27(:,3);
     demographics_summary.Transition_27_CI_lower = demo_corr_27(:,4);
     demographics_summary.Transition_27_CI_upper = demo_corr_27(:,5);
     demographics_summary.bvFTD_r = demo_corr_bvftd(:,1);
     demographics_summary.bvFTD_p = demo_corr_bvftd(:,2);
+    demographics_summary.bvFTD_p_FDR = adj_p_demo_bvftd;
+    demographics_summary.bvFTD_FDR_significant = h_fdr_demo_bvftd;
     demographics_summary.bvFTD_n = demo_corr_bvftd(:,3);
     demographics_summary.bvFTD_CI_lower = demo_corr_bvftd(:,4);
     demographics_summary.bvFTD_CI_upper = demo_corr_bvftd(:,5);
-    
+
     writetable(demographics_summary, [data_out_path 'Summary_Demographics_Correlations.csv']);
-    fprintf('  Saved: Summary_Demographics_Correlations.csv\n');
+    fprintf('  Saved: Summary_Demographics_Correlations.csv (with FDR correction)\n');
 end
 
 fprintf('\nDEMOGRAPHICS ANALYSIS COMPLETE\n\n');
@@ -3563,6 +3672,445 @@ end
 fprintf('PRIORITY 4.5 COMPLETE\n\n');
 
 %% ==========================================================================
+%  SECTION 10B: SESSION 2 - FEATURE 2.1: UNIVARIATE CORRELATIONS EXPORT
+%  ==========================================================================
+fprintf('---------------------------------------------------\n');
+fprintf('|  FEATURE 2.1: UNIVARIATE CORRELATIONS EXPORT    |\n');
+fprintf('---------------------------------------------------\n\n');
+
+fprintf('Collecting all univariate correlations from all sections...\n\n');
+
+% Helper function to create correlation row
+create_corr_row = @(varname, label, r, p, n, ci_low, ci_high, p_fdr, fdr_sig) ...
+    struct('Variable', varname, 'Label', label, 'r', r, 'p_uncorrected', p, ...
+           'n_subjects', n, 'CI_lower', ci_low, 'CI_upper', ci_high, ...
+           'p_FDR', p_fdr, 'FDR_significant', fdr_sig);
+
+% Initialize collectors for each decision score
+corr_data_26 = {};
+corr_data_27 = {};
+corr_data_bvftd = {};
+
+% ========== SYMPTOM SEVERITY ==========
+if exist('symptom_names_clean', 'var') && exist('symptom_corr_26', 'var')
+    for i = 1:length(symptom_names_clean)
+        if ~isnan(symptom_corr_26(i, 1))
+            varname = symptom_names_clean{i};
+            label = get_label(varname);
+            corr_data_26{end+1} = create_corr_row(varname, label, ...
+                symptom_corr_26(i,1), symptom_corr_26(i,2), symptom_corr_26(i,3), ...
+                symptom_corr_26(i,4), symptom_corr_26(i,5), adj_p_26(i), h_fdr_26(i));
+            corr_data_27{end+1} = create_corr_row(varname, label, ...
+                symptom_corr_27(i,1), symptom_corr_27(i,2), symptom_corr_27(i,3), ...
+                symptom_corr_27(i,4), symptom_corr_27(i,5), adj_p_27(i), h_fdr_27(i));
+            corr_data_bvftd{end+1} = create_corr_row(varname, label, ...
+                symptom_corr_bvftd(i,1), symptom_corr_bvftd(i,2), symptom_corr_bvftd(i,3), ...
+                symptom_corr_bvftd(i,4), symptom_corr_bvftd(i,5), adj_p_bvftd(i), h_fdr_bvftd(i));
+        end
+    end
+end
+
+% ========== CLINICAL HISTORY ==========
+if exist('available_clinical_history_vars', 'var') && exist('clinical_corr_26', 'var')
+    for i = 1:length(available_clinical_history_vars)
+        if ~isnan(clinical_corr_26(i, 1))
+            varname = available_clinical_history_vars{i};
+            label = get_label(varname);
+            corr_data_26{end+1} = create_corr_row(varname, label, ...
+                clinical_corr_26(i,1), clinical_corr_26(i,2), clinical_corr_26(i,3), ...
+                clinical_corr_26(i,4), clinical_corr_26(i,5), adj_p_clin_26(i), h_fdr_clin_26(i));
+            corr_data_27{end+1} = create_corr_row(varname, label, ...
+                clinical_corr_27(i,1), clinical_corr_27(i,2), clinical_corr_27(i,3), ...
+                clinical_corr_27(i,4), clinical_corr_27(i,5), adj_p_clin_27(i), h_fdr_clin_27(i));
+            corr_data_bvftd{end+1} = create_corr_row(varname, label, ...
+                clinical_corr_bvftd(i,1), clinical_corr_bvftd(i,2), clinical_corr_bvftd(i,3), ...
+                clinical_corr_bvftd(i,4), clinical_corr_bvftd(i,5), adj_p_clin_bvftd(i), h_fdr_clin_bvftd(i));
+        end
+    end
+end
+
+% ========== CHILDHOOD ADVERSITY ==========
+if exist('available_childhood_vars', 'var') && exist('childhood_corr_26', 'var')
+    for i = 1:length(available_childhood_vars)
+        if ~isnan(childhood_corr_26(i, 1))
+            varname = available_childhood_vars{i};
+            label = get_label(varname);
+            corr_data_26{end+1} = create_corr_row(varname, label, ...
+                childhood_corr_26(i,1), childhood_corr_26(i,2), childhood_corr_26(i,3), ...
+                childhood_corr_26(i,4), childhood_corr_26(i,5), adj_p_child_26(i), h_fdr_child_26(i));
+            corr_data_27{end+1} = create_corr_row(varname, label, ...
+                childhood_corr_27(i,1), childhood_corr_27(i,2), childhood_corr_27(i,3), ...
+                childhood_corr_27(i,4), childhood_corr_27(i,5), adj_p_child_27(i), h_fdr_child_27(i));
+            corr_data_bvftd{end+1} = create_corr_row(varname, label, ...
+                childhood_corr_bvftd(i,1), childhood_corr_bvftd(i,2), childhood_corr_bvftd(i,3), ...
+                childhood_corr_bvftd(i,4), childhood_corr_bvftd(i,5), adj_p_child_bvftd(i), h_fdr_child_bvftd(i));
+        end
+    end
+end
+
+% ========== DEMOGRAPHICS ==========
+if exist('demo_vars_analyzed', 'var') && exist('demo_corr_26', 'var')
+    for i = 1:length(demo_vars_analyzed)
+        if ~isnan(demo_corr_26(i, 1))
+            varname = demo_vars_analyzed{i};
+            label = get_label(varname);
+            corr_data_26{end+1} = create_corr_row(varname, label, ...
+                demo_corr_26(i,1), demo_corr_26(i,2), demo_corr_26(i,3), ...
+                demo_corr_26(i,4), demo_corr_26(i,5), adj_p_demo_26(i), h_fdr_demo_26(i));
+            corr_data_27{end+1} = create_corr_row(varname, label, ...
+                demo_corr_27(i,1), demo_corr_27(i,2), demo_corr_27(i,3), ...
+                demo_corr_27(i,4), demo_corr_27(i,5), adj_p_demo_27(i), h_fdr_demo_27(i));
+            corr_data_bvftd{end+1} = create_corr_row(varname, label, ...
+                demo_corr_bvftd(i,1), demo_corr_bvftd(i,2), demo_corr_bvftd(i,3), ...
+                demo_corr_bvftd(i,4), demo_corr_bvftd(i,5), adj_p_demo_bvftd(i), h_fdr_demo_bvftd(i));
+        end
+    end
+end
+
+% Convert to tables and sort by p_uncorrected
+if ~isempty(corr_data_26)
+    univar_tbl_26 = struct2table(vertcat(corr_data_26{:}));
+    univar_tbl_26 = sortrows(univar_tbl_26, 'p_uncorrected', 'ascend');
+    univar_tbl_26.Decision_Score = repmat({'Transition-26'}, height(univar_tbl_26), 1);
+    writetable(univar_tbl_26, [data_out_path 'Univariate_Correlations_Transition26_FDR_Sorted.csv']);
+    fprintf('  ✓ Saved: Univariate_Correlations_Transition26_FDR_Sorted.csv (%d correlations)\n', height(univar_tbl_26));
+end
+
+if ~isempty(corr_data_27)
+    univar_tbl_27 = struct2table(vertcat(corr_data_27{:}));
+    univar_tbl_27 = sortrows(univar_tbl_27, 'p_uncorrected', 'ascend');
+    univar_tbl_27.Decision_Score = repmat({'Transition-27'}, height(univar_tbl_27), 1);
+    writetable(univar_tbl_27, [data_out_path 'Univariate_Correlations_Transition27_FDR_Sorted.csv']);
+    fprintf('  ✓ Saved: Univariate_Correlations_Transition27_FDR_Sorted.csv (%d correlations)\n', height(univar_tbl_27));
+end
+
+if ~isempty(corr_data_bvftd)
+    univar_tbl_bvftd = struct2table(vertcat(corr_data_bvftd{:}));
+    univar_tbl_bvftd = sortrows(univar_tbl_bvftd, 'p_uncorrected', 'ascend');
+    univar_tbl_bvftd.Decision_Score = repmat({'bvFTD'}, height(univar_tbl_bvftd), 1);
+    writetable(univar_tbl_bvftd, [data_out_path 'Univariate_Correlations_bvFTD_FDR_Sorted.csv']);
+    fprintf('  ✓ Saved: Univariate_Correlations_bvFTD_FDR_Sorted.csv (%d correlations)\n', height(univar_tbl_bvftd));
+end
+
+fprintf('\nFEATURE 2.1 COMPLETE: Univariate correlations exported\n\n');
+
+%% ==========================================================================
+%  SECTION 10C: SESSION 2 - FEATURE 2.3: COHORT-STRATIFIED BOXPLOTS
+%  ==========================================================================
+fprintf('---------------------------------------------------\n');
+fprintf('|  FEATURE 2.3: COHORT-STRATIFIED BOXPLOTS        |\n');
+fprintf('---------------------------------------------------\n\n');
+
+fprintf('Creating decision score comparisons across diagnosis groups...\n\n');
+
+% Check if diagnosis_group exists in full dataset (before patient filtering)
+if exist('analysis_data_full', 'var') && ismember('diagnosis_group', analysis_data_full.Properties.VariableNames)
+    cohort_data = analysis_data_full;
+else
+    fprintf('  WARNING: Using patient-only dataset (no HC for comparison)\n');
+    cohort_data = analysis_data;
+end
+
+% Get unique diagnosis groups
+unique_groups = unique(cohort_data.diagnosis_group);
+unique_groups = unique_groups(~cellfun(@isempty, unique_groups));
+
+fprintf('  Diagnosis groups found: %s\n', strjoin(unique_groups, ', '));
+
+% Prepare data for each decision score
+ds_names = {'Transition_26', 'Transition_27', 'bvFTD'};
+ds_labels = {'Transition-26', 'Transition-27', 'bvFTD'};
+ds_colors = {[0.2 0.4 0.8], [0.8 0.4 0.2], [0.8 0.2 0.2]};
+
+% Create figure
+figure('Position', [100 100 1600 500]);
+
+for ds_idx = 1:3
+    ds_name = ds_names{ds_idx};
+    ds_label = ds_labels{ds_idx};
+
+    subplot(1, 3, ds_idx);
+    hold on;
+
+    % Collect data by group
+    group_data = {};
+    group_labels = {};
+    group_n = [];
+
+    for g = 1:length(unique_groups)
+        group_name = unique_groups{g};
+        group_mask = strcmp(cohort_data.diagnosis_group, group_name);
+        group_scores = cohort_data.(ds_name)(group_mask);
+        group_scores = group_scores(~isnan(group_scores));
+
+        if ~isempty(group_scores)
+            group_data{end+1} = group_scores;
+            group_labels{end+1} = sprintf('%s (n=%d)', group_name, length(group_scores));
+            group_n(end+1) = length(group_scores);
+        end
+    end
+
+    % Create boxplot
+    if length(group_data) >= 2
+        % Combine all data for boxplot
+        all_scores = [];
+        all_groups = [];
+        for g = 1:length(group_data)
+            all_scores = [all_scores; group_data{g}];
+            all_groups = [all_groups; repmat(g, length(group_data{g}), 1)];
+        end
+
+        % Boxplot
+        boxplot(all_scores, all_groups, 'Colors', 'k', 'Symbol', '', 'Widths', 0.5);
+
+        % Add individual data points with jitter
+        for g = 1:length(group_data)
+            x_jitter = g + 0.15 * (rand(length(group_data{g}), 1) - 0.5);
+            scatter(x_jitter, group_data{g}, 30, ds_colors{ds_idx}, 'filled', ...
+                'MarkerFaceAlpha', 0.3);
+        end
+
+        % Mark median and mean
+        for g = 1:length(group_data)
+            med_val = median(group_data{g});
+            mean_val = mean(group_data{g});
+            plot(g, med_val, 'r_', 'LineWidth', 3, 'MarkerSize', 15);
+            plot(g, mean_val, 'gd', 'LineWidth', 2, 'MarkerSize', 8);
+        end
+
+        % One-way ANOVA if ≥3 groups with n≥5
+        valid_groups = group_n >= 5;
+        if sum(valid_groups) >= 3
+            % ANOVA
+            [p_anova, tbl_anova, stats_anova] = anova1(all_scores, all_groups, 'off');
+
+            % Title with ANOVA result
+            if p_anova < 0.05
+                title(sprintf('%s\nANOVA: F=%.2f, p=%.4f ***', ds_label, ...
+                    tbl_anova{2,5}, p_anova), 'FontWeight', 'bold');
+
+                % Post-hoc Tukey HSD
+                [c, ~, ~, gnames] = multcompare(stats_anova, 'Display', 'off', 'CType', 'hsd');
+
+                % Calculate Cohen's d for significant pairs
+                fprintf('\n  %s - Significant pairwise comparisons (Tukey HSD):\n', ds_label);
+                for i = 1:size(c, 1)
+                    if c(i, 6) < 0.05  % Significant comparison
+                        g1_idx = c(i, 1);
+                        g2_idx = c(i, 2);
+
+                        % Cohen's d
+                        pooled_std = sqrt((var(group_data{g1_idx}) + var(group_data{g2_idx})) / 2);
+                        cohens_d = (mean(group_data{g1_idx}) - mean(group_data{g2_idx})) / pooled_std;
+
+                        fprintf('    %s vs %s: p=%.4f, d=%.3f\n', ...
+                            unique_groups{g1_idx}, unique_groups{g2_idx}, c(i, 6), cohens_d);
+                    end
+                end
+            else
+                title(sprintf('%s\nANOVA: F=%.2f, p=%.4f', ds_label, ...
+                    tbl_anova{2,5}, p_anova), 'FontWeight', 'bold');
+            end
+        else
+            title(ds_label, 'FontWeight', 'bold');
+        end
+
+        % Labels and formatting
+        set(gca, 'XTick', 1:length(group_labels), 'XTickLabel', group_labels, ...
+            'XTickLabelRotation', 15);
+        ylabel('Decision Score', 'FontWeight', 'bold');
+        xlabel('Diagnosis Group', 'FontWeight', 'bold');
+        grid on;
+
+        % Legend for median/mean markers
+        if ds_idx == 3
+            legend({'Median', 'Mean'}, 'Location', 'northeast', 'FontSize', 8);
+        end
+    end
+
+    hold off;
+end
+
+sgtitle('Decision Scores by Diagnosis Group', 'FontWeight', 'bold', 'FontSize', 14);
+
+% Save figure
+saveas(gcf, [fig_path 'Cohort_Stratified_Decision_Scores.png']);
+saveas(gcf, [fig_path 'Cohort_Stratified_Decision_Scores.fig']);
+fprintf('\n  ✓ Saved: Cohort_Stratified_Decision_Scores.png/.fig\n');
+
+fprintf('\nFEATURE 2.3 COMPLETE: Cohort-stratified boxplots created\n\n');
+
+%% ==========================================================================
+%  SECTION 10D: SESSION 2 - FEATURE 2.4: AGE × DECISION SCORE INTERACTION
+%  ==========================================================================
+fprintf('---------------------------------------------------\n');
+fprintf('|  FEATURE 2.4: AGE × DECISION SCORE INTERACTION   |\n');
+fprintf('---------------------------------------------------\n\n');
+
+fprintf('Investigating age moderation of brain-symptom relationships...\n\n');
+
+% Use full dataset with all cohorts
+if exist('analysis_data_full', 'var')
+    interaction_data = analysis_data_full;
+else
+    interaction_data = analysis_data;
+end
+
+% Filter for valid age and diagnosis_group
+valid_for_interaction = ~isnan(interaction_data.Age) & ...
+                        ~cellfun(@isempty, interaction_data.diagnosis_group);
+interaction_data = interaction_data(valid_for_interaction, :);
+
+% Get unique groups
+groups = unique(interaction_data.diagnosis_group);
+groups = groups(~cellfun(@isempty, groups));
+
+% Colors for each group
+group_colors = containers.Map();
+group_colors('HC') = [0.2 0.7 0.2];           % Green
+group_colors('Depression') = [0.8 0.2 0.2];  % Red
+group_colors('Anxiety') = [0.2 0.4 0.8];     % Blue
+group_colors('Comorbid') = [0.8 0.4 0.8];    % Purple
+
+% Process each decision score
+ds_names = {'Transition_26', 'Transition_27', 'bvFTD'};
+ds_labels = {'Transition-26', 'Transition-27', 'bvFTD'};
+ds_filenames = {'Age_Interaction_Transition26', 'Age_Interaction_Transition27', ...
+                'Age_Interaction_bvFTD'};
+
+for ds_idx = 1:3
+    ds_name = ds_names{ds_idx};
+    ds_label = ds_labels{ds_idx};
+    ds_filename = ds_filenames{ds_idx};
+
+    fprintf('\nAnalyzing: %s\n', ds_label);
+
+    % Filter for valid decision scores
+    valid_ds = ~isnan(interaction_data.(ds_name));
+    analysis_subset = interaction_data(valid_ds, :);
+
+    if height(analysis_subset) < 20
+        fprintf('  WARNING: Insufficient data (n=%d), skipping\n', height(analysis_subset));
+        continue;
+    end
+
+    % Fit linear model: Decision_Score ~ Age * diagnosis_group
+    % Convert diagnosis_group to categorical
+    analysis_subset.diagnosis_group_cat = categorical(analysis_subset.diagnosis_group);
+
+    % Fit model
+    try
+        mdl = fitlm(analysis_subset, sprintf('%s ~ Age * diagnosis_group_cat', ds_name));
+
+        % Extract statistics
+        r_squared = mdl.Rsquared.Ordinary;
+        interaction_p = NaN;
+
+        % Find interaction term p-value
+        coeff_names = mdl.CoefficientNames;
+        for i = 1:length(coeff_names)
+            if contains(coeff_names{i}, 'Age:diagnosis_group_cat')
+                interaction_p = mdl.Coefficients.pValue(i);
+                break;
+            end
+        end
+
+        fprintf('  Model R²: %.4f\n', r_squared);
+        if ~isnan(interaction_p)
+            fprintf('  Interaction p-value: %.4f', interaction_p);
+            if interaction_p < 0.05
+                fprintf(' ***\n');
+            else
+                fprintf('\n');
+            end
+        end
+
+        % Create figure
+        figure('Position', [100 100 900 700]);
+        hold on;
+
+        % Age range for predictions
+        age_range = linspace(min(analysis_subset.Age), max(analysis_subset.Age), 100)';
+
+        % Plot for each group
+        legend_entries = {};
+        for g = 1:length(groups)
+            group_name = groups{g};
+            group_mask = strcmp(analysis_subset.diagnosis_group, group_name);
+
+            if sum(group_mask) < 3
+                continue;  % Skip groups with too few data points
+            end
+
+            % Get color
+            if group_colors.isKey(group_name)
+                color = group_colors(group_name);
+            else
+                color = [0.5 0.5 0.5];  % Default gray
+            end
+
+            % Scatter plot
+            scatter(analysis_subset.Age(group_mask), analysis_subset.(ds_name)(group_mask), ...
+                50, color, 'filled', 'MarkerFaceAlpha', 0.5);
+
+            % Fit regression for this group
+            group_ages = analysis_subset.Age(group_mask);
+            group_scores = analysis_subset.(ds_name)(group_mask);
+
+            % Simple linear regression
+            p_fit = polyfit(group_ages, group_scores, 1);
+            y_fit = polyval(p_fit, age_range);
+
+            % Calculate 95% CI
+            [y_pred, delta] = polyval(p_fit, age_range, ...
+                struct('R', corrcoef([group_ages, group_scores]), ...
+                       'df', length(group_ages)-2, ...
+                       'normr', norm(group_scores - polyval(p_fit, group_ages))));
+
+            % Shaded 95% CI
+            fill([age_range; flipud(age_range)], ...
+                 [y_fit + 1.96*delta; flipud(y_fit - 1.96*delta)], ...
+                 color, 'FaceAlpha', 0.2, 'EdgeColor', 'none');
+
+            % Regression line
+            plot(age_range, y_fit, '-', 'Color', color, 'LineWidth', 2);
+
+            % Legend entry with regression equation
+            [r_group, p_group] = corr(group_ages, group_scores);
+            legend_entries{end+1} = sprintf('%s: r=%.3f, p=%.3f (y=%.3fx+%.2f)', ...
+                group_name, r_group, p_group, p_fit(1), p_fit(2));
+        end
+
+        % Labels and formatting
+        xlabel('Age (years)', 'FontWeight', 'bold', 'FontSize', 12);
+        ylabel(sprintf('%s Score', ds_label), 'FontWeight', 'bold', 'FontSize', 12);
+        title(sprintf('Age × %s Interaction', ds_label), 'FontWeight', 'bold', 'FontSize', 14);
+
+        % Add statistics annotation
+        if ~isnan(interaction_p)
+            text(0.02, 0.98, sprintf('Interaction p=%.4f\nOverall R²=%.4f', interaction_p, r_squared), ...
+                'Units', 'normalized', 'VerticalAlignment', 'top', ...
+                'FontSize', 10, 'BackgroundColor', 'white', 'EdgeColor', 'black');
+        end
+
+        % Legend
+        legend(legend_entries, 'Location', 'best', 'FontSize', 9);
+        grid on;
+        hold off;
+
+        % Save figure
+        saveas(gcf, [fig_path ds_filename '.png']);
+        saveas(gcf, [fig_path ds_filename '.fig']);
+        fprintf('  ✓ Saved: %s.png/.fig\n', ds_filename);
+
+    catch ME
+        fprintf('  ERROR fitting model: %s\n', ME.message);
+    end
+end
+
+fprintf('\nFEATURE 2.4 COMPLETE: Age × Decision Score interaction analysis complete\n\n');
+
+%% ==========================================================================
 %  SECTION 11: SAVE COMPLETE ANALYSIS DATASET
 %  ==========================================================================
 fprintf('---------------------------------------------------\n');
@@ -3737,4 +4285,97 @@ function label = get_label_safe(varname, label_map)
         % If anything fails, just return the original variable name
         label = varname;
     end
+end
+
+function [h, crit_p, adj_p] = fdr_bh(pvals, q)
+    % BENJAMINI-HOCHBERG FDR CORRECTION
+    % Implements the Benjamini-Hochberg procedure for controlling
+    % False Discovery Rate in multiple hypothesis testing
+    %
+    % INPUTS:
+    %   pvals - vector of p-values to correct
+    %   q     - desired FDR level (default: 0.05)
+    %
+    % OUTPUTS:
+    %   h       - binary vector of significance flags (1=significant, 0=not)
+    %   crit_p  - critical p-value threshold
+    %   adj_p   - FDR-adjusted p-values (q-values)
+    %
+    % REFERENCE:
+    %   Benjamini, Y. & Hochberg, Y. (1995). Controlling the false discovery
+    %   rate: A practical and powerful approach to multiple testing.
+    %   Journal of the Royal Statistical Society, Series B, 57(1), 289-300.
+    %
+    % Author: Claude AI Assistant
+    % Date: November 8, 2025
+
+    if nargin < 2
+        q = 0.05;
+    end
+
+    % Handle edge cases
+    if isempty(pvals)
+        h = [];
+        crit_p = [];
+        adj_p = [];
+        return;
+    end
+
+    % Convert to column vector
+    pvals = pvals(:);
+    n = length(pvals);
+
+    % Handle NaN values
+    nan_mask = isnan(pvals);
+    valid_pvals = pvals(~nan_mask);
+    n_valid = length(valid_pvals);
+
+    if n_valid == 0
+        h = false(n, 1);
+        crit_p = NaN;
+        adj_p = NaN(n, 1);
+        return;
+    end
+
+    % Sort p-values
+    [sorted_pvals, sort_idx] = sort(valid_pvals);
+
+    % Calculate BH threshold for each rank
+    % P(i) <= (i/m) * q
+    ranks = (1:n_valid)';
+    bh_threshold = (ranks / n_valid) * q;
+
+    % Find largest i where P(i) <= (i/m)*q
+    significant_idx = find(sorted_pvals <= bh_threshold, 1, 'last');
+
+    if isempty(significant_idx)
+        crit_p = 0;
+        h_valid = false(n_valid, 1);
+    else
+        crit_p = sorted_pvals(significant_idx);
+        h_valid = sorted_pvals <= crit_p;
+    end
+
+    % Calculate adjusted p-values (q-values)
+    % q(i) = min(1, min_{j>=i} (m/j) * P(j))
+    adj_p_sorted = NaN(n_valid, 1);
+    adj_p_sorted(n_valid) = sorted_pvals(n_valid);
+
+    for i = (n_valid-1):-1:1
+        adj_p_sorted(i) = min(1, min((n_valid / i) * sorted_pvals(i), adj_p_sorted(i+1)));
+    end
+
+    % Unsort to match original order
+    h_unsorted = false(n_valid, 1);
+    h_unsorted(sort_idx) = h_valid;
+
+    adj_p_unsorted = NaN(n_valid, 1);
+    adj_p_unsorted(sort_idx) = adj_p_sorted;
+
+    % Insert NaN results back for invalid p-values
+    h = false(n, 1);
+    h(~nan_mask) = h_unsorted;
+
+    adj_p = NaN(n, 1);
+    adj_p(~nan_mask) = adj_p_unsorted;
 end
