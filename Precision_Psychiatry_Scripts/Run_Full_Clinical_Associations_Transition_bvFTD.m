@@ -4376,11 +4376,13 @@ if exist('all_med_vars', 'var')
 end
 
 fprintf('\nPCA COMPONENT SUMMARY:\n');
-if exist('explained', 'var')
+if exist('explained', 'var') && ~isempty(explained) && length(explained) >= 3
     fprintf('  PC1: %.1f%% variance\n', explained(1));
     fprintf('  PC2: %.1f%% variance\n', explained(2));
     fprintf('  PC3: %.1f%% variance\n', explained(3));
     fprintf('  Total (PC1-PC3): %.1f%% variance\n\n', sum(explained(1:3)));
+else
+    fprintf('  PCA not performed (insufficient data)\n\n');
 end
 
 if exist('results_recency', 'var') && isfield(results_recency, 'stratified_analysis')
