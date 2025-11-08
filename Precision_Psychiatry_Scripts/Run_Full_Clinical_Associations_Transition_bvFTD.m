@@ -27,6 +27,16 @@
 %  ==========================================================================
 
 clear; clc; close all;
+
+% =========================================================================
+% REPRODUCIBILITY: Set random seed for deterministic results
+% =========================================================================
+% Setting a random seed ensures reproducibility across all analyses,
+% even though this script primarily uses deterministic operations.
+% This is critical for scientific reproducibility and allows exact
+% replication of results when running multiple times.
+rng(42, 'twister');  % Mersenne Twister algorithm with seed 42
+
 fprintf('---------------------------------------------------\n');
 fprintf('| PRIORITY 4.1-4.5: COMPREHENSIVE CLINICAL ANALYSIS |\n');
 fprintf('---------------------------------------------------\n');
@@ -36,51 +46,88 @@ fprintf('Start time: %s\n\n', datestr(now));
 %  ANALYSIS PARAMETERS (SESSION 3: FEATURE 3.2)
 %  ==========================================================================
 %  Centralized configuration constants to improve code maintainability
-%  and eliminate magic numbers throughout the analysis pipeline
+%  and eliminate magic numbers throughout the analysis pipeline.
+%
+%  RATIONALE: Using named constants instead of hardcoded values:
+%  1. Makes code self-documenting (intent is clear)
+%  2. Allows easy parameter tuning for sensitivity analyses
+%  3. Ensures consistency across all 4,000+ lines of code
+%  4. Facilitates future modifications without hunting for magic numbers
 
 % Statistical Thresholds
-MIN_SAMPLE_SIZE = 30;           % Minimum n for valid statistical analyses
-ALPHA_LEVEL = 0.05;             % Significance level (uncorrected p-value)
-FDR_LEVEL = 0.05;               % False Discovery Rate q-value
-CI_LEVEL = 0.95;                % Confidence interval level (95%)
-CI_Z_SCORE = 1.96;              % Z-score for 95% CI (two-tailed)
+% ----------------------
+% These control when analyses are performed and how significance is determined
+MIN_SAMPLE_SIZE = 30;           % Minimum n for valid statistical analyses (avoids unreliable small-sample estimates)
+ALPHA_LEVEL = 0.05;             % Significance level for uncorrected p-values (conventional 5% Type I error rate)
+FDR_LEVEL = 0.05;               % False Discovery Rate q-value for Benjamini-Hochberg correction
+CI_LEVEL = 0.95;                % Confidence interval level (95% - standard in medical research)
+CI_Z_SCORE = 1.96;              % Z-score for 95% CI in normal distribution (two-tailed)
+
+% Effect Size Interpretation Thresholds (Cohen's conventions)
+% ------------------------------------------------------------
+% Used to interpret practical significance of correlations and group differences
+EFFECT_SMALL = 0.10;            % Small effect: r = 0.10, d = 0.20
+EFFECT_MEDIUM = 0.30;           % Medium effect: r = 0.30, d = 0.50
+EFFECT_LARGE = 0.50;            % Large effect: r = 0.50, d = 0.80
+% Reference: Cohen, J. (1988). Statistical Power Analysis for the Behavioral Sciences.
 
 % Outlier Handling
-OUTLIER_THRESHOLD_DS = 10;      % Absolute decision score threshold for outlier detection
-OUTLIER_CODE = 99;              % Numeric code indicating missing/outlier value
+% ----------------
+% Decision scores are z-standardized brain predictions; extreme values indicate model uncertainty
+OUTLIER_THRESHOLD_DS = 10;      % Absolute decision score threshold (|z| > 10 is virtually impossible)
+OUTLIER_CODE = 99;              % Numeric code used in data files to indicate missing/outlier values
 
 % PCA Parameters
-MIN_VARIANCE_EXPLAINED = 0.70;  % Minimum cumulative variance for PC retention (70%)
-MAX_N_COMPONENTS = 3;           % Maximum number of principal components to retain
-MIN_PCA_SAMPLES = 50;           % Minimum sample size required for PCA
+% --------------
+% Principal Component Analysis reduces 11 symptom variables to orthogonal components
+MIN_VARIANCE_EXPLAINED = 0.70;  % Minimum cumulative variance for PC retention (70% - captures most information)
+MAX_N_COMPONENTS = 3;           % Maximum number of PCs to retain (balance between reduction and information)
+MIN_PCA_SAMPLES = 50;           % Minimum sample size for stable PCA (rule of thumb: 5× variables minimum)
 
 % Plotting Parameters
-FIGURE_RESOLUTION = 300;        % DPI for saved PNG figures
-COLORMAP_CORR = 'redblue';      % Heatmap colormap for correlation matrices
-MARKER_SIZE_SCATTER = 50;       % Marker size for scatter plots
-LINE_WIDTH_REGRESSION = 2;      % Line width for regression lines
-FONT_SIZE_AXIS = 12;            % Font size for axis labels
-FONT_SIZE_TITLE = 14;           % Font size for plot titles
-FOREST_PLOT_WIDTH = 1000;       % Forest plot figure width (pixels)
-FOREST_PLOT_HEIGHT = 600;       % Forest plot figure height (pixels)
+% -------------------
+% Standardized visual parameters for publication-quality figures
+FIGURE_RESOLUTION = 300;        % DPI for saved PNG figures (300 DPI is publication standard)
+COLORMAP_CORR = 'redblue';      % Heatmap colormap: blue (negative) to red (positive) correlations
+MARKER_SIZE_SCATTER = 50;       % Marker size for scatter plots (optimal visibility)
+LINE_WIDTH_REGRESSION = 2;      % Line width for regression lines (clear without overwhelming)
+FONT_SIZE_AXIS = 12;            % Font size for axis labels (readable in publications)
+FONT_SIZE_TITLE = 14;           % Font size for plot titles (slightly larger for hierarchy)
+FOREST_PLOT_WIDTH = 1000;       % Forest plot figure width in pixels
+FOREST_PLOT_HEIGHT = 600;       % Forest plot figure height in pixels
 
 % Medication Analysis
-MIN_MEDICATION_USERS = 10;      % Minimum n patients on medication for analysis
+% -------------------
+MIN_MEDICATION_USERS = 10;      % Minimum n patients on specific medication for reliable analysis
 
 % Age Interaction Analysis
-MIN_GROUP_SIZE_INTERACTION = 3; % Minimum group size for age interaction plots
-AGE_PREDICTION_POINTS = 100;    % Number of points for age prediction curves
+% ------------------------
+MIN_GROUP_SIZE_INTERACTION = 3; % Minimum group size for plotting age×diagnosis interactions (avoids 1-2 point groups)
+AGE_PREDICTION_POINTS = 100;    % Number of points for smooth age prediction curves in interaction plots
 
 fprintf('  ✓ Analysis parameters initialized\n\n');
 
 %% ==========================================================================
-%  SECTION 0: VARIABLE LABEL MAPPING (NEW!)
+%  SECTION 0: VARIABLE LABEL MAPPING
+%  ==========================================================================
+% PURPOSE: Create human-readable labels for NESDA variable codes
+%
+% RATIONALE:
+% NESDA uses cryptic variable codes (e.g., 'aids', 'abaiscal') that are not
+% self-explanatory. This mapping creates interpretable labels for:
+% 1. Publication-quality figures (forest plots, tables)
+% 2. Clear communication of results to clinicians
+% 3. Reduced errors from misinterpreting variable meanings
+% 4. Easier code maintenance and understanding
+%
+% The labels are used throughout via get_label_safe() function,
+% which safely retrieves labels with fallback to variable name if not found.
 %  ==========================================================================
 fprintf('---------------------------------------------------\n');
 fprintf('SECTION 0: VARIABLE LABEL MAPPING\n');
 fprintf('---------------------------------------------------\n\n');
 
-% Create interpretable labels for all clinical variables
+% Initialize containers.Map: key-value pairs for variable_code → readable_label
 variable_labels = containers.Map();
 
 % Symptom Severity Variables
@@ -1167,13 +1214,26 @@ if ~isempty(available_symptom_vars)
         end
     end
 
-    % FEATURE 1.3: FDR CORRECTION
-    n_uncorrected_sig = sum(symptom_corr_26(:,2) < 0.05 & ~isnan(symptom_corr_26(:,2)));
-    [h_fdr_26, crit_p_26, adj_p_26] = fdr_bh(symptom_corr_26(:,2), 0.05);
+    % =====================================================================
+    % MULTIPLE TESTING CORRECTION: Benjamini-Hochberg FDR
+    % =====================================================================
+    % PROBLEM: With 11 symptom variables tested, ~5% false positives expected by chance alone
+    %          At α=0.05, we expect 0.55 false positives even if no true effects exist
+    % SOLUTION: FDR correction controls the expected proportion of false discoveries
+    %          among all discoveries (unlike Bonferroni which controls family-wise error)
+    % METHOD: Benjamini & Hochberg (1995) step-up procedure
+    %         - Ranks p-values from smallest to largest
+    %         - Finds largest i where P(i) ≤ (i/m)×q
+    %         - Rejects all hypotheses 1...i
+    % BENEFIT: More powerful than Bonferroni (fewer false negatives)
+    %          while controlling false discovery rate at q=0.05
+    % =====================================================================
+    n_uncorrected_sig = sum(symptom_corr_26(:,2) < ALPHA_LEVEL & ~isnan(symptom_corr_26(:,2)));
+    [h_fdr_26, crit_p_26, adj_p_26] = fdr_bh(symptom_corr_26(:,2), FDR_LEVEL);
     n_fdr_sig = sum(h_fdr_26);
-    fprintf('\n  FDR CORRECTION (q=0.05): %d/%d significant (uncorrected: %d/%d)\n', ...
-        n_fdr_sig, size(symptom_corr_26,1), n_uncorrected_sig, size(symptom_corr_26,1));
-    fprintf('  Critical p-value: %.4f\n\n', crit_p_26);
+    fprintf('\n  FDR CORRECTION (q=%.2f): %d/%d significant (uncorrected: %d/%d)\n', ...
+        FDR_LEVEL, n_fdr_sig, size(symptom_corr_26,1), n_uncorrected_sig, size(symptom_corr_26,1));
+    fprintf('  Critical p-value: %.4f (original p-values ≤ this are FDR-significant)\n\n', crit_p_26);
 
     results_4_2.symptom_correlations_transition_26 = symptom_corr_26;
     results_4_2.symptom_fdr_26 = h_fdr_26;
@@ -4504,7 +4564,69 @@ function fig = create_forest_plot(var_names, labels, correlations, CIs, p_vals, 
     hold off;
 end
 
+function effect_label = interpret_effect_size(r, type)
+    % INTERPRET EFFECT SIZE MAGNITUDE
+    %
+    % Provides standardized interpretation of effect sizes following Cohen's conventions.
+    % This helps translate statistical significance into practical significance.
+    %
+    % INPUTS:
+    %   r    - Effect size (correlation coefficient for 'r', Cohen's d for 'd')
+    %   type - 'r' for correlations, 'd' for Cohen's d (default: 'r')
+    %
+    % OUTPUTS:
+    %   effect_label - String describing effect magnitude:
+    %                  'negligible', 'small', 'medium', 'large', 'very large'
+    %
+    % THRESHOLDS (Cohen, 1988):
+    %   Correlations (r): small=0.10, medium=0.30, large=0.50
+    %   Cohen's d:        small=0.20, medium=0.50, large=0.80
+    %
+    % REFERENCE:
+    %   Cohen, J. (1988). Statistical Power Analysis for the Behavioral Sciences (2nd ed.).
+    %   Hillsdale, NJ: Lawrence Erlbaum Associates.
+    %
+    % Author: Claude AI Assistant
+    % Date: November 8, 2025
+
+    if nargin < 2
+        type = 'r';  % Default to correlation
+    end
+
+    abs_r = abs(r);  % Use absolute value for magnitude interpretation
+
+    if strcmpi(type, 'r')
+        % Correlation thresholds
+        if abs_r < 0.10
+            effect_label = 'negligible';
+        elseif abs_r < 0.30
+            effect_label = 'small';
+        elseif abs_r < 0.50
+            effect_label = 'medium';
+        elseif abs_r < 0.70
+            effect_label = 'large';
+        else
+            effect_label = 'very large';
+        end
+    elseif strcmpi(type, 'd')
+        % Cohen's d thresholds
+        if abs_r < 0.20
+            effect_label = 'negligible';
+        elseif abs_r < 0.50
+            effect_label = 'small';
+        elseif abs_r < 0.80
+            effect_label = 'medium';
+        else
+            effect_label = 'large';
+        end
+    else
+        error('Unknown effect size type: %s. Use ''r'' or ''d''.', type);
+    end
+end
+
 function result = ternary(condition, true_val, false_val)
+    % TERNARY OPERATOR - inline conditional value selection
+    % Simplified if-else for value assignment
     if condition
         result = true_val;
     else
