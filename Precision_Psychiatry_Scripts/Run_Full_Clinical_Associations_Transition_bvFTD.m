@@ -3542,16 +3542,16 @@ fprintf('  Diagnosis groups found: %s\n', strjoin(unique_groups, ', '));
 % Prepare data for each decision score
 ds_names = {'Transition_26', 'bvFTD'};
 ds_labels = {'Transition-26', 'bvFTD'};
-ds_colors = {[0.2 0.4 0.8], [0.8 0.4 0.2], [0.8 0.2 0.2]};
+ds_colors = {[0.2 0.4 0.8], [0.8 0.2 0.2]};
 
 % Create figure
-figure('Position', [100 100 1600 500]);
+figure('Position', [100 100 1200 500]);
 
-for ds_idx = 1:3
+for ds_idx = 1:2
     ds_name = ds_names{ds_idx};
     ds_label = ds_labels{ds_idx};
 
-    subplot(1, 3, ds_idx);
+    subplot(1, 2, ds_idx);
     hold on;
 
     % Collect data by group
@@ -3697,10 +3697,9 @@ group_colors('Comorbid') = [0.8 0.4 0.8];    % Purple
 % Process each decision score
 ds_names = {'Transition_26', 'bvFTD'};
 ds_labels = {'Transition-26', 'bvFTD'};
-ds_filenames = {'Age_Interaction_Transition26', 'Age_Interaction_Transition27', ...
-                'Age_Interaction_bvFTD'};
+ds_filenames = {'Age_Interaction_Transition26', 'Age_Interaction_bvFTD'};
 
-for ds_idx = 1:3
+for ds_idx = 1:2
     ds_name = ds_names{ds_idx};
     ds_label = ds_labels{ds_idx};
     ds_filename = ds_filenames{ds_idx};
