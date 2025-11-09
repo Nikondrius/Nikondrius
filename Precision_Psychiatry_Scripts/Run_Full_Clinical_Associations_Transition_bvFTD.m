@@ -1233,7 +1233,11 @@ if ~isempty(available_symptom_vars)
     n_fdr_sig = sum(h_fdr_26);
     fprintf('\n  FDR CORRECTION (q=%.2f): %d/%d significant (uncorrected: %d/%d)\n', ...
         FDR_LEVEL, n_fdr_sig, size(symptom_corr_26,1), n_uncorrected_sig, size(symptom_corr_26,1));
-    fprintf('  Critical p-value: %.4f (original p-values ≤ this are FDR-significant)\n\n', crit_p_26);
+    if crit_p_26 > 0
+        fprintf('  Critical p-value: %.4f (original p-values ≤ this are FDR-significant)\n\n', crit_p_26);
+    else
+        fprintf('  No tests survive FDR correction (all FDR-adjusted p-values > %.2f)\n\n', FDR_LEVEL);
+    end
 
     results_4_2.symptom_correlations_transition_26 = symptom_corr_26;
     results_4_2.symptom_fdr_26 = h_fdr_26;
@@ -1269,7 +1273,11 @@ if ~isempty(available_symptom_vars)
     n_fdr_sig = sum(h_fdr_27);
     fprintf('\n  FDR CORRECTION (q=0.05): %d/%d significant (uncorrected: %d/%d)\n', ...
         n_fdr_sig, size(symptom_corr_27,1), n_uncorrected_sig, size(symptom_corr_27,1));
-    fprintf('  Critical p-value: %.4f\n\n', crit_p_27);
+    if crit_p_27 > 0
+        fprintf('  Critical p-value: %.4f\n\n', crit_p_27);
+    else
+        fprintf('  No tests survive FDR correction (all FDR-adjusted p-values > 0.05)\n\n');
+    end
 
     results_4_2.symptom_correlations_transition_27 = symptom_corr_27;
     results_4_2.symptom_fdr_27 = h_fdr_27;
@@ -1305,7 +1313,11 @@ if ~isempty(available_symptom_vars)
     n_fdr_sig = sum(h_fdr_bvftd);
     fprintf('\n  FDR CORRECTION (q=0.05): %d/%d significant (uncorrected: %d/%d)\n', ...
         n_fdr_sig, size(symptom_corr_bvftd,1), n_uncorrected_sig, size(symptom_corr_bvftd,1));
-    fprintf('  Critical p-value: %.4f\n\n', crit_p_bvftd);
+    if crit_p_bvftd > 0
+        fprintf('  Critical p-value: %.4f\n\n', crit_p_bvftd);
+    else
+        fprintf('  No tests survive FDR correction (all FDR-adjusted p-values > 0.05)\n\n');
+    end
 
     results_4_2.symptom_correlations_bvftd = symptom_corr_bvftd;
     results_4_2.symptom_fdr_bvftd = h_fdr_bvftd;
