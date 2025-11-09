@@ -259,8 +259,8 @@ fprintf('  Output directory: %s\n', results_path);
 fprintf('  Figure output: %s\n', fig_path);
 fprintf('  Data output: %s\n\n', data_out_path);
 
-diary([results_path 'Priority_4_1_to_4_5_Complete_Analysis_Log_OOCV26_27.txt']);
-fprintf('Logging to: %sPriority_4_1_to_4_5_Complete_Analysis_Log_OOCV26_27.txt\n\n', results_path);
+diary([results_path 'Priority_4_1_to_4_5_Complete_Analysis_Log_OOCV26_bvFTD.txt']);
+fprintf('Logging to: %sPriority_4_1_to_4_5_Complete_Analysis_Log_OOCV26_bvFTD.txt\n\n', results_path);
 
 %% ==========================================================================
 %  SECTION 2: LOAD NESDA CLINICAL DATA
@@ -3178,7 +3178,6 @@ fprintf('COMPILING ALL UNIVARIATE ASSOCIATIONS\n\n');
 all_vars = {};
 all_categories = {};
 all_corr_26 = [];
-all_corr_27 = [];
 all_corr_bvftd = [];
 
 fprintf('  Compiling results from all analyses...\n');
@@ -3188,10 +3187,8 @@ if exist('r_bmi_26', 'var')
     all_categories{end+1} = 'Metabolic';
     n_bmi = sum(~isnan(analysis_data.abmi) & ~isnan(analysis_data.Transition_26));
     ci_26 = ci_r(r_bmi_26, n_bmi);
-    ci_27 = ci_r(r_bmi_27, n_bmi);
     ci_bvftd = ci_r(r_bmi_bvftd, n_bmi);
     all_corr_26 = [all_corr_26; r_bmi_26, p_bmi_26, n_bmi, ci_26(1), ci_26(2)];
-    all_corr_27 = [all_corr_27; r_bmi_27, p_bmi_27, n_bmi, ci_27(1), ci_27(2)];
     all_corr_bvftd = [all_corr_bvftd; r_bmi_bvftd, p_bmi_bvftd, n_bmi, ci_bvftd(1), ci_bvftd(2)];
 end
 
@@ -3201,7 +3198,6 @@ if exist('symptom_corr_26', 'var')
             all_vars{end+1} = symptom_names_clean{i};
             all_categories{end+1} = 'Symptom_Severity';
             all_corr_26 = [all_corr_26; symptom_corr_26(i,:)];
-            all_corr_27 = [all_corr_27; symptom_corr_27(i,:)];
             all_corr_bvftd = [all_corr_bvftd; symptom_corr_bvftd(i,:)];
         end
     end
@@ -3213,7 +3209,6 @@ if exist('age_onset_corr_26', 'var')
             all_vars{end+1} = available_age_onset_vars{i};
             all_categories{end+1} = 'Age_of_Onset';
             all_corr_26 = [all_corr_26; age_onset_corr_26(i,:)];
-            all_corr_27 = [all_corr_27; age_onset_corr_27(i,:)];
             all_corr_bvftd = [all_corr_bvftd; age_onset_corr_bvftd(i,:)];
         end
     end
@@ -3225,7 +3220,6 @@ if exist('duration_corr_26', 'var')
             all_vars{end+1} = illness_duration_vars{i};
             all_categories{end+1} = 'Illness_Duration';
             all_corr_26 = [all_corr_26; duration_corr_26(i,:)];
-            all_corr_27 = [all_corr_27; duration_corr_27(i,:)];
             all_corr_bvftd = [all_corr_bvftd; duration_corr_bvftd(i,:)];
         end
     end
@@ -3238,7 +3232,6 @@ if exist('recency_corr_26', 'var')
             all_vars{end+1} = available_recency_vars{i};
             all_categories{end+1} = 'Recency';
             all_corr_26 = [all_corr_26; recency_corr_26(i,:)];
-            all_corr_27 = [all_corr_27; recency_corr_27(i,:)];
             all_corr_bvftd = [all_corr_bvftd; recency_corr_bvftd(i,:)];
         end
     end
@@ -3250,7 +3243,6 @@ if exist('clinical_corr_26', 'var')
             all_vars{end+1} = available_clinical_history_vars{i};
             all_categories{end+1} = 'Clinical_History';
             all_corr_26 = [all_corr_26; clinical_corr_26(i,:)];
-            all_corr_27 = [all_corr_27; clinical_corr_27(i,:)];
             all_corr_bvftd = [all_corr_bvftd; clinical_corr_bvftd(i,:)];
         end
     end
@@ -3262,7 +3254,6 @@ if exist('childhood_corr_26', 'var')
             all_vars{end+1} = available_childhood_vars{i};
             all_categories{end+1} = 'Childhood_Adversity';
             all_corr_26 = [all_corr_26; childhood_corr_26(i,:)];
-            all_corr_27 = [all_corr_27; childhood_corr_27(i,:)];
             all_corr_bvftd = [all_corr_bvftd; childhood_corr_bvftd(i,:)];
         end
     end
@@ -3274,7 +3265,6 @@ if exist('cognitive_corr_26', 'var') && ~isempty(cognitive_corr_26)
             all_vars{end+1} = cognitive_vars_found{i};
             all_categories{end+1} = 'Cognition_Functioning';
             all_corr_26 = [all_corr_26; cognitive_corr_26(i,:)];
-            all_corr_27 = [all_corr_27; cognitive_corr_27(i,:)];
             all_corr_bvftd = [all_corr_bvftd; cognitive_corr_bvftd(i,:)];
         end
     end
@@ -3286,7 +3276,6 @@ if exist('demo_corr_26', 'var') && ~isempty(demo_corr_26)
             all_vars{end+1} = demo_vars_analyzed{i};
             all_categories{end+1} = 'Demographics';
             all_corr_26 = [all_corr_26; demo_corr_26(i,:)];
-            all_corr_27 = [all_corr_27; demo_corr_27(i,:)];
             all_corr_bvftd = [all_corr_bvftd; demo_corr_bvftd(i,:)];
         end
     end
@@ -3308,12 +3297,6 @@ comprehensive_summary.Trans26_n = all_corr_26(:,3);
 comprehensive_summary.Trans26_CI_lower = all_corr_26(:,4);
 comprehensive_summary.Trans26_CI_upper = all_corr_26(:,5);
 
-comprehensive_summary.Trans27_r = all_corr_27(:,1);
-comprehensive_summary.Trans27_p = all_corr_27(:,2);
-comprehensive_summary.Trans27_n = all_corr_27(:,3);
-comprehensive_summary.Trans27_CI_lower = all_corr_27(:,4);
-comprehensive_summary.Trans27_CI_upper = all_corr_27(:,5);
-
 comprehensive_summary.bvFTD_r = all_corr_bvftd(:,1);
 comprehensive_summary.bvFTD_p = all_corr_bvftd(:,2);
 comprehensive_summary.bvFTD_n = all_corr_bvftd(:,3);
@@ -3328,17 +3311,16 @@ unique_categories = unique(all_categories);
 
 for i = 1:length(unique_categories)
     cat_idx = strcmp(all_categories, unique_categories{i});
-    
+
     fprintf('  %s (%d variables):\n', unique_categories{i}, sum(cat_idx));
-    
+
     sig_26 = sum(all_corr_26(cat_idx, 2) < 0.05);
-    sig_27 = sum(all_corr_27(cat_idx, 2) < 0.05);
     sig_bvftd = sum(all_corr_bvftd(cat_idx, 2) < 0.05);
-    
+
     fprintf('    Significant associations (p<0.05):\n');
     fprintf('      Transition-26: %d/%d (%.1f%%)\n', sig_26, sum(cat_idx), 100*sig_26/sum(cat_idx));
     fprintf('      bvFTD: %d/%d (%.1f%%)\n', sig_bvftd, sum(cat_idx), 100*sig_bvftd/sum(cat_idx));
-    
+
     fprintf('    Mean |r| (Transition-26): %.3f\n', mean(abs(all_corr_26(cat_idx, 1))));
     fprintf('    Mean |r| (bvFTD): %.3f\n\n', mean(abs(all_corr_bvftd(cat_idx, 1))));
 end
@@ -3449,7 +3431,6 @@ create_corr_row = @(varname, label, r, p, n, ci_low, ci_high, p_fdr, fdr_sig) ..
 
 % Initialize collectors for each decision score
 corr_data_26 = {};
-corr_data_27 = {};
 corr_data_bvftd = {};
 
 % ========== SYMPTOM SEVERITY ==========
@@ -3461,9 +3442,6 @@ if exist('symptom_names_clean', 'var') && exist('symptom_corr_26', 'var')
             corr_data_26{end+1} = create_corr_row(varname, label, ...
                 symptom_corr_26(i,1), symptom_corr_26(i,2), symptom_corr_26(i,3), ...
                 symptom_corr_26(i,4), symptom_corr_26(i,5), adj_p_26(i), h_fdr_26(i));
-            corr_data_27{end+1} = create_corr_row(varname, label, ...
-                symptom_corr_27(i,1), symptom_corr_27(i,2), symptom_corr_27(i,3), ...
-                symptom_corr_27(i,4), symptom_corr_27(i,5), adj_p_27(i), h_fdr_27(i));
             corr_data_bvftd{end+1} = create_corr_row(varname, label, ...
                 symptom_corr_bvftd(i,1), symptom_corr_bvftd(i,2), symptom_corr_bvftd(i,3), ...
                 symptom_corr_bvftd(i,4), symptom_corr_bvftd(i,5), adj_p_bvftd(i), h_fdr_bvftd(i));
@@ -3480,9 +3458,6 @@ if exist('available_clinical_history_vars', 'var') && exist('clinical_corr_26', 
             corr_data_26{end+1} = create_corr_row(varname, label, ...
                 clinical_corr_26(i,1), clinical_corr_26(i,2), clinical_corr_26(i,3), ...
                 clinical_corr_26(i,4), clinical_corr_26(i,5), adj_p_clin_26(i), h_fdr_clin_26(i));
-            corr_data_27{end+1} = create_corr_row(varname, label, ...
-                clinical_corr_27(i,1), clinical_corr_27(i,2), clinical_corr_27(i,3), ...
-                clinical_corr_27(i,4), clinical_corr_27(i,5), adj_p_clin_27(i), h_fdr_clin_27(i));
             corr_data_bvftd{end+1} = create_corr_row(varname, label, ...
                 clinical_corr_bvftd(i,1), clinical_corr_bvftd(i,2), clinical_corr_bvftd(i,3), ...
                 clinical_corr_bvftd(i,4), clinical_corr_bvftd(i,5), adj_p_clin_bvftd(i), h_fdr_clin_bvftd(i));
@@ -3499,9 +3474,6 @@ if exist('available_childhood_vars', 'var') && exist('childhood_corr_26', 'var')
             corr_data_26{end+1} = create_corr_row(varname, label, ...
                 childhood_corr_26(i,1), childhood_corr_26(i,2), childhood_corr_26(i,3), ...
                 childhood_corr_26(i,4), childhood_corr_26(i,5), adj_p_child_26(i), h_fdr_child_26(i));
-            corr_data_27{end+1} = create_corr_row(varname, label, ...
-                childhood_corr_27(i,1), childhood_corr_27(i,2), childhood_corr_27(i,3), ...
-                childhood_corr_27(i,4), childhood_corr_27(i,5), adj_p_child_27(i), h_fdr_child_27(i));
             corr_data_bvftd{end+1} = create_corr_row(varname, label, ...
                 childhood_corr_bvftd(i,1), childhood_corr_bvftd(i,2), childhood_corr_bvftd(i,3), ...
                 childhood_corr_bvftd(i,4), childhood_corr_bvftd(i,5), adj_p_child_bvftd(i), h_fdr_child_bvftd(i));
@@ -3518,9 +3490,6 @@ if exist('demo_vars_analyzed', 'var') && exist('demo_corr_26', 'var')
             corr_data_26{end+1} = create_corr_row(varname, label, ...
                 demo_corr_26(i,1), demo_corr_26(i,2), demo_corr_26(i,3), ...
                 demo_corr_26(i,4), demo_corr_26(i,5), adj_p_demo_26(i), h_fdr_demo_26(i));
-            corr_data_27{end+1} = create_corr_row(varname, label, ...
-                demo_corr_27(i,1), demo_corr_27(i,2), demo_corr_27(i,3), ...
-                demo_corr_27(i,4), demo_corr_27(i,5), adj_p_demo_27(i), h_fdr_demo_27(i));
             corr_data_bvftd{end+1} = create_corr_row(varname, label, ...
                 demo_corr_bvftd(i,1), demo_corr_bvftd(i,2), demo_corr_bvftd(i,3), ...
                 demo_corr_bvftd(i,4), demo_corr_bvftd(i,5), adj_p_demo_bvftd(i), h_fdr_demo_bvftd(i));
@@ -3535,13 +3504,6 @@ if ~isempty(corr_data_26)
     univar_tbl_26.Decision_Score = repmat({'Transition-26'}, height(univar_tbl_26), 1);
     writetable(univar_tbl_26, [data_out_path 'Univariate_Correlations_Transition26_FDR_Sorted.csv']);
     fprintf('  ✓ Saved: Univariate_Correlations_Transition26_FDR_Sorted.csv (%d correlations)\n', height(univar_tbl_26));
-end
-
-if ~isempty(corr_data_27)
-    univar_tbl_27 = struct2table(vertcat(corr_data_27{:}));
-    univar_tbl_27 = sortrows(univar_tbl_27, 'p_uncorrected', 'ascend');
-    writetable(univar_tbl_27, [data_out_path 'Univariate_Correlations_Transition27_FDR_Sorted.csv']);
-    fprintf('  ✓ Saved: Univariate_Correlations_Transition27_FDR_Sorted.csv (%d correlations)\n', height(univar_tbl_27));
 end
 
 if ~isempty(corr_data_bvftd)
@@ -3953,7 +3915,7 @@ if exist('all_med_vars', 'var') && exist('sig_idx_med', 'var') && sum(sig_idx_me
 end
 
 fprintf('\n  Log:\n');
-fprintf('    * Priority_4_1_to_4_5_Complete_Analysis_Log_OOCV26_27.txt\n');
+fprintf('    * Priority_4_1_to_4_5_Complete_Analysis_Log_OOCV26_bvFTD.txt\n');
 
 fprintf('\nKEY FINDINGS SUMMARY:\n');
 fprintf('  Total clinical variables analyzed: %d\n', length(all_vars));
@@ -4000,7 +3962,7 @@ fprintf('---------------------------------------------------\n\n');
 
 diary off;
 
-fprintf('ALL DONE! Script executed successfully with OOCV-26 and OOCV-27.\n');
+fprintf('ALL DONE! Script executed successfully with OOCV-26 and bvFTD.\n');
 fprintf('Check output folder: %s\n\n', results_path);
 
 %% ==========================================================================
