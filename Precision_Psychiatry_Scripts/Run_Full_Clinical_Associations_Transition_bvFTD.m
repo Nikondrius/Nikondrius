@@ -4,15 +4,14 @@
 %  Author: Nikos Diederichs
 %  Date: October 26, 2025
 %  For: Clara V - NESDA Clinical Associations Phase 2
-%  Version: 3.5 - CORRECTED MEDICATION VARIABLE CODING
+%  Version: 4.0 - STREAMLINED TO TRANSITION-26 AND bvFTD ONLY
 %  MODIFIED: October 29, 2025 - Fixed _fr variable interpretation
 %                               + Proper handling of frequency (0/1/2) vs binary (0/1)
-%  MODIFIED: [Current Date] - Updated to OOCV-26 and OOCV-27
+%  MODIFIED: November 9, 2025 - Removed OOCV-27 (redundant, focus on primary models)
 %
 %  DECISION SCORE VERSIONS USED:
-%  - Transition: OOCV-26 (Version A - Dynamic Std) [PRIMARY]
-%  - Transition: OOCV-27 (Version B - Site-agnostic) [SENSITIVITY]
-%  - bvFTD: OOCV-7 (Dynamic Std)
+%  - Transition: OOCV-26 (Dynamic Std) [PRIMARY TRANSITION MODEL]
+%  - bvFTD: OOCV-7 (Dynamic Std) [DEMENTIA MODEL]
 %
 %  ANALYSES INCLUDED:
 %  - 4.1: Metabolic Subtypes & BMI
@@ -22,8 +21,8 @@
 %  - 4.4B: Medication Analysis (PATIENTS ONLY) - CORRECTED CODING
 %  - NEW 9C: Recency Stratified Analysis (OPTION 6)
 %  - 4.5: Comprehensive Statistical Summary (ALL 40+ VARIABLES)
-%  - NEW: Forest Plots for BOTH Transition-26 AND bvFTD
-%  - NEW: Complete PC1, PC2, PC3 correlations with all decision scores
+%  - NEW: Forest Plots for Transition-26 AND bvFTD
+%  - NEW: Complete PC1, PC2, PC3 correlations with both decision scores
 %  ==========================================================================
 
 clear; clc; close all;
@@ -677,49 +676,6 @@ end
 fprintf('    Valid scores: %d/%d\n', sum(~isnan(transition_scores_26)), n_before_exclusion);
 fprintf('    Mean ± SD: %.3f ± %.3f\n\n', mean(transition_scores_26, 'omitnan'), std(transition_scores_26, 'omitnan'));
 
-transition_file_27 = [transition_path_base 'PRS_TransPred_A32_OOCV-27_Predictions_Cl_1PT_vs_NT.csv'];
-fprintf('Loading Version B (OOCV-27): %s\n', transition_file_27);
-
-if ~exist(transition_file_27, 'file')
-    error('ERROR: Transition OOCV-27 file not found: %s', transition_file_27);
-end
-
-try
- transition_27_tbl = readtable(transition_file_27, 'VariableNamingRule', 'preserve');
-% Manually set variable names if they weren't read correctly
-if startsWith(transition_27_tbl.Properties.VariableNames{1}, 'Var')
-    expected_names = {'Cases', 'PRED_LABEL', 'Mean_Score', 'Std_Score', 'Ens_Prob1', 'Ens_Prob_1', 'PercRank_Score'};
-    n_cols = width(transition_27_tbl);
-    transition_27_tbl.Properties.VariableNames = expected_names(1:n_cols);
-end
-fprintf('  OOCV-27 loaded successfully!\n');
-catch
-    transition_27_tbl = readtable(transition_file_27, 'Delimiter', ',', 'VariableNamingRule', 'preserve');
-    fprintf('  OOCV-27 loaded successfully (Comma-delimited)!\n');
-end
-
-fprintf('  Dimensions: [%d subjects × %d columns]\n', height(transition_27_tbl), width(transition_27_tbl));
-
-transition_ids_27 = transition_27_tbl{:,1};
-decision_col_idx = find(contains(transition_27_tbl.Properties.VariableNames, 'Mean_Score', 'IgnoreCase', true));
-if isempty(decision_col_idx)
-    decision_col_idx = find(contains(transition_27_tbl.Properties.VariableNames, 'Decision', 'IgnoreCase', true));
-end
-transition_scores_27 = transition_27_tbl{:,decision_col_idx(1)};
-
-n_before = length(transition_scores_27);
-% SESSION 3 FEATURE 3.2: Use parameterized outlier thresholds
-outlier_mask_27 = (transition_scores_27 == OUTLIER_CODE) | (abs(transition_scores_27) > OUTLIER_THRESHOLD_DS);
-transition_scores_27(outlier_mask_27) = NaN;
-n_excluded = sum(isnan(transition_scores_27)) - sum(isnan(transition_27_tbl{:,decision_col_idx(1)}));
-
-fprintf('  Decision scores extracted\n');
-if n_excluded > 0
-    fprintf('  Excluded %d subjects with decision score = 99 (missing value code)\n', n_excluded);
-end
-fprintf('    Valid scores: %d/%d\n', sum(~isnan(transition_scores_27)), n_before);
-fprintf('    Mean ± SD: %.3f ± %.3f\n\n', mean(transition_scores_27, 'omitnan'), std(transition_scores_27, 'omitnan'));
-
 %% ==========================================================================
 %  SECTION 4: LOAD bvFTD DECISION SCORES
 %  ==========================================================================
@@ -798,19 +754,6 @@ catch ME
 end
 
 try
-    [~, idx_nesda_27, idx_trans_27] = intersect(nesda_ids, transition_ids_27);
-    fprintf('  ✓ Transition-27 matched: %d subjects\n', length(idx_nesda_27));
-
-    if isempty(idx_nesda_27)
-        warning('No matching IDs between clinical data and Transition-27. Analysis will continue with Transition-26 only.');
-    end
-catch ME
-    warning('ID matching failed for Transition-27: %s\nContinuing with Transition-26 only.', ME.message);
-    idx_nesda_27 = [];
-    idx_trans_27 = [];
-end
-
-try
     [~, idx_nesda_bvftd, idx_bvftd] = intersect(nesda_ids, bvftd_ids);
     fprintf('  ✓ bvFTD matched: %d subjects\n\n', length(idx_nesda_bvftd));
 
@@ -826,11 +769,9 @@ end
 fprintf('Creating analysis dataset...\n');
 analysis_data = nesda_data;
 analysis_data.Transition_26 = NaN(height(analysis_data), 1);
-analysis_data.Transition_27 = NaN(height(analysis_data), 1);
 analysis_data.bvFTD = NaN(height(analysis_data), 1);
 
 analysis_data.Transition_26(idx_nesda_26) = transition_scores_26(idx_trans_26);
-analysis_data.Transition_27(idx_nesda_27) = transition_scores_27(idx_trans_27);
 analysis_data.bvFTD(idx_nesda_bvftd) = bvftd_scores(idx_bvftd);
 
 fprintf('  Analysis dataset created: [%d subjects × %d variables]\n', ...
@@ -838,9 +779,6 @@ fprintf('  Analysis dataset created: [%d subjects × %d variables]\n', ...
 fprintf('  With Transition-26: %d (%.1f%%)\n', ...
     sum(~isnan(analysis_data.Transition_26)), ...
     100*sum(~isnan(analysis_data.Transition_26))/height(analysis_data));
-fprintf('  With Transition-27: %d (%.1f%%)\n', ...
-    sum(~isnan(analysis_data.Transition_27)), ...
-    100*sum(~isnan(analysis_data.Transition_27))/height(analysis_data));
 fprintf('  With bvFTD: %d (%.1f%%)\n\n', ...
     sum(~isnan(analysis_data.bvFTD)), ...
     100*sum(~isnan(analysis_data.bvFTD))/height(analysis_data));
@@ -1011,7 +949,7 @@ if ismember('aLCAsubtype', analysis_data.Properties.VariableNames)
     fprintf('  Valid cases: %d\n\n', sum(valid_idx));
     
     fprintf('  Testing group differences:\n');
-    
+
     [p_26, tbl_26, stats_26] = anova1(analysis_data.Transition_26(valid_idx), ...
         subtypes_for_analysis(valid_idx), 'off');
     fprintf('    Transition-26: F=%.3f, p=%.4f', tbl_26{2,5}, p_26);
@@ -1021,18 +959,7 @@ if ismember('aLCAsubtype', analysis_data.Properties.VariableNames)
         fprintf('\n');
     end
     results_4_1.metabolic_transition_26_p = p_26;
-    
-    valid_idx_27 = ~isnan(subtypes_for_analysis) & ~isnan(analysis_data.Transition_27);
-    [p_27, tbl_27, stats_27] = anova1(analysis_data.Transition_27(valid_idx_27), ...
-        subtypes_for_analysis(valid_idx_27), 'off');
-    fprintf('    Transition-27: F=%.3f, p=%.4f', tbl_27{2,5}, p_27);
-    if p_27 < 0.05
-        fprintf(' SIGNIFICANT\n');
-    else
-        fprintf('\n');
-    end
-    results_4_1.metabolic_transition_27_p = p_27;
-    
+
     valid_idx_bvftd = ~isnan(subtypes_for_analysis) & ~isnan(analysis_data.bvFTD);
     [p_bvftd, tbl_bvftd, stats_bvftd] = anova1(analysis_data.bvFTD(valid_idx_bvftd), ...
         subtypes_for_analysis(valid_idx_bvftd), 'off');
@@ -1044,9 +971,9 @@ if ismember('aLCAsubtype', analysis_data.Properties.VariableNames)
     end
     results_4_1.metabolic_bvftd_p = p_bvftd;
 
-    fig = figure('Position', [100 100 1200 400]);
+    fig = figure('Position', [100 100 800 400]);
 
-    subplot(1,3,1);
+    subplot(1,2,1);
     boxplot(analysis_data.Transition_26(valid_idx), subtypes_for_analysis(valid_idx), ...
         'Colors', [0.2 0.4 0.8], 'Symbol', 'k.');
     ylabel('Transition-26 Score', 'FontWeight', 'bold');
@@ -1054,15 +981,7 @@ if ismember('aLCAsubtype', analysis_data.Properties.VariableNames)
     title(sprintf('Transition-26\np=%.4f', p_26), 'FontWeight', 'bold');
     grid on;
 
-    subplot(1,3,2);
-    boxplot(analysis_data.Transition_27(valid_idx_27), subtypes_for_analysis(valid_idx_27), ...
-        'Colors', [0.8 0.4 0.2], 'Symbol', 'k.');
-    ylabel('Transition-27 Score', 'FontWeight', 'bold');
-    xlabel('Metabolic Subtype', 'FontWeight', 'bold');
-    title(sprintf('Transition-27\np=%.4f', p_27), 'FontWeight', 'bold');
-    grid on;
-
-    subplot(1,3,3);
+    subplot(1,2,2);
     boxplot(analysis_data.bvFTD(valid_idx_bvftd), subtypes_for_analysis(valid_idx_bvftd), ...
         'Colors', [0.8 0.2 0.2], 'Symbol', 'k.');
     ylabel('bvFTD Score', 'FontWeight', 'bold');
@@ -1096,19 +1015,7 @@ if ismember('abmi', analysis_data.Properties.VariableNames)
     end
     results_4_1.bmi_transition_26_r = r_bmi_26;
     results_4_1.bmi_transition_26_p = p_bmi_26;
-    
-    valid_bmi_27 = ~isnan(bmi) & ~isnan(analysis_data.Transition_27);
-    [r_bmi_27, p_bmi_27] = corr(bmi(valid_bmi_27), analysis_data.Transition_27(valid_bmi_27));
-    ci_27 = ci_r(r_bmi_27, sum(valid_bmi_27));
-    fprintf('  Transition-27: r=%.3f [%.3f, %.3f], p=%.4f (n=%d)', r_bmi_27, ci_27(1), ci_27(2), p_bmi_27, sum(valid_bmi_27));
-    if p_bmi_27 < 0.05
-        fprintf(' SIGNIFICANT\n');
-    else
-        fprintf('\n');
-    end
-    results_4_1.bmi_transition_27_r = r_bmi_27;
-    results_4_1.bmi_transition_27_p = p_bmi_27;
-    
+
     valid_bmi_bvftd = ~isnan(bmi) & ~isnan(analysis_data.bvFTD);
     [r_bmi_bvftd, p_bmi_bvftd] = corr(bmi(valid_bmi_bvftd), analysis_data.bvFTD(valid_bmi_bvftd));
     ci_bvftd = ci_r(r_bmi_bvftd, sum(valid_bmi_bvftd));
@@ -1121,9 +1028,9 @@ if ismember('abmi', analysis_data.Properties.VariableNames)
     results_4_1.bmi_bvftd_r = r_bmi_bvftd;
     results_4_1.bmi_bvftd_p = p_bmi_bvftd;
     
-    figure('Position', [100 100 1200 400]);
-    
-    subplot(1,3,1);
+    figure('Position', [100 100 800 400]);
+
+    subplot(1,2,1);
     scatter(bmi(valid_bmi_26), analysis_data.Transition_26(valid_bmi_26), 50, ...
         [0.2 0.4 0.8], 'filled', 'MarkerFaceAlpha', 0.5);
     hold on;
@@ -1133,19 +1040,8 @@ if ismember('abmi', analysis_data.Properties.VariableNames)
     ylabel('Transition-26 Score', 'FontWeight', 'bold');
     title(sprintf('r=%.3f, p=%.4f', r_bmi_26, p_bmi_26), 'FontWeight', 'bold');
     grid on;
-    
-    subplot(1,3,2);
-    scatter(bmi(valid_bmi_27), analysis_data.Transition_27(valid_bmi_27), 50, ...
-        [0.8 0.4 0.2], 'filled', 'MarkerFaceAlpha', 0.5);
-    hold on;
-    p_fit = polyfit(bmi(valid_bmi_27), analysis_data.Transition_27(valid_bmi_27), 1);
-    plot(bmi(valid_bmi_27), polyval(p_fit, bmi(valid_bmi_27)), 'r-', 'LineWidth', 2);
-    xlabel('BMI (kg/m²)', 'FontWeight', 'bold');
-    ylabel('Transition-27 Score', 'FontWeight', 'bold');
-    title(sprintf('r=%.3f, p=%.4f', r_bmi_27, p_bmi_27), 'FontWeight', 'bold');
-    grid on;
-    
-    subplot(1,3,3);
+
+    subplot(1,2,2);
     scatter(bmi(valid_bmi_bvftd), analysis_data.bvFTD(valid_bmi_bvftd), 50, ...
         [0.8 0.2 0.2], 'filled', 'MarkerFaceAlpha', 0.5);
     hold on;
@@ -1247,47 +1143,7 @@ if ~isempty(available_symptom_vars)
     results_4_2.symptom_correlations_transition_26 = symptom_corr_26;
     results_4_2.symptom_fdr_26 = h_fdr_26;
     results_4_2.symptom_adj_p_26 = adj_p_26;
-    
-    fprintf('CORRELATIONS WITH TRANSITION-27:\n');
-    fprintf('  Variable                     r        p      n\n');
-    fprintf('  ----------------------------------------\n');
 
-    symptom_corr_27 = [];
-    for i = 1:length(symptom_names_clean)
-        valid_idx = ~isnan(symptom_data(:,i)) & ~isnan(analysis_data.Transition_27);
-        if sum(valid_idx) >= 30
-            [r, p] = corr(symptom_data(valid_idx,i), analysis_data.Transition_27(valid_idx));
-            n = sum(valid_idx);
-            ci = ci_r(r, n);
-            symptom_corr_27 = [symptom_corr_27; r, p, n, ci(1), ci(2)];
-
-            fprintf('  %-25s %7.3f %7.4f %5d', symptom_names_clean{i}, r, p, n);
-            if p < 0.05
-                fprintf(' *\n');
-            else
-                fprintf('\n');
-            end
-        else
-            symptom_corr_27 = [symptom_corr_27; NaN, NaN, sum(valid_idx), NaN, NaN];
-        end
-    end
-
-    % FEATURE 1.3: FDR CORRECTION
-    n_uncorrected_sig = sum(symptom_corr_27(:,2) < 0.05 & ~isnan(symptom_corr_27(:,2)));
-    [h_fdr_27, crit_p_27, adj_p_27] = fdr_bh(symptom_corr_27(:,2), 0.05);
-    n_fdr_sig = sum(h_fdr_27);
-    fprintf('\n  FDR CORRECTION (q=0.05): %d/%d significant (uncorrected: %d/%d)\n', ...
-        n_fdr_sig, size(symptom_corr_27,1), n_uncorrected_sig, size(symptom_corr_27,1));
-    if crit_p_27 > 0
-        fprintf('  Critical p-value: %.4f\n\n', crit_p_27);
-    else
-        fprintf('  No tests survive FDR correction (all FDR-adjusted p-values > 0.05)\n\n');
-    end
-
-    results_4_2.symptom_correlations_transition_27 = symptom_corr_27;
-    results_4_2.symptom_fdr_27 = h_fdr_27;
-    results_4_2.symptom_adj_p_27 = adj_p_27;
-    
     fprintf('CORRELATIONS WITH bvFTD:\n');
     fprintf('  Variable                     r        p      n\n');
     fprintf('  ----------------------------------------\n');
@@ -1398,26 +1254,7 @@ if ~isempty(available_symptom_vars)
         results_4_2.pc1_transition_26_r = r_pc1_26;
         results_4_2.pc1_transition_26_p = p_pc1_26;
         results_4_2.pc1_transition_26_n = n_pc1_26;
-        
-        % PC1 vs Transition-27
-        valid_pc1_27 = ~isnan(pc1_score) & ~isnan(analysis_data.Transition_27);
-        [r_pc1_27, p_pc1_27] = corr(pc1_score(valid_pc1_27), ...
-            analysis_data.Transition_27(valid_pc1_27));
-        n_pc1_27 = sum(valid_pc1_27);
-        ci_pc1_27 = ci_r(r_pc1_27, n_pc1_27);
-        fprintf('  PC1 vs Transition-27:\n');
-        fprintf('    r = %.3f [%.3f, %.3f]\n', r_pc1_27, ci_pc1_27(1), ci_pc1_27(2));
-        fprintf('    p = %.4f\n', p_pc1_27);
-        fprintf('    n = %d', n_pc1_27);
-        if p_pc1_27 < 0.05
-            fprintf(' *** SIGNIFICANT ***\n\n');
-        else
-            fprintf('\n\n');
-        end
-        results_4_2.pc1_transition_27_r = r_pc1_27;
-        results_4_2.pc1_transition_27_p = p_pc1_27;
-        results_4_2.pc1_transition_27_n = n_pc1_27;
-        
+
         % PC1 vs bvFTD
         valid_pc1_bvftd = ~isnan(pc1_score) & ~isnan(analysis_data.bvFTD);
         [r_pc1_bvftd, p_pc1_bvftd] = corr(pc1_score(valid_pc1_bvftd), ...
@@ -1459,26 +1296,7 @@ if ~isempty(available_symptom_vars)
         results_4_2.pc2_transition_26_r = r_pc2_26;
         results_4_2.pc2_transition_26_p = p_pc2_26;
         results_4_2.pc2_transition_26_n = n_pc2_26;
-        
-        % PC2 vs Transition-27
-        valid_pc2_27 = ~isnan(pc2_score) & ~isnan(analysis_data.Transition_27);
-        [r_pc2_27, p_pc2_27] = corr(pc2_score(valid_pc2_27), ...
-            analysis_data.Transition_27(valid_pc2_27));
-        n_pc2_27 = sum(valid_pc2_27);
-        ci_pc2_27 = ci_r(r_pc2_27, n_pc2_27);
-        fprintf('  PC2 vs Transition-27:\n');
-        fprintf('    r = %.3f [%.3f, %.3f]\n', r_pc2_27, ci_pc2_27(1), ci_pc2_27(2));
-        fprintf('    p = %.4f\n', p_pc2_27);
-        fprintf('    n = %d', n_pc2_27);
-        if p_pc2_27 < 0.05
-            fprintf(' *** SIGNIFICANT ***\n\n');
-        else
-            fprintf('\n\n');
-        end
-        results_4_2.pc2_transition_27_r = r_pc2_27;
-        results_4_2.pc2_transition_27_p = p_pc2_27;
-        results_4_2.pc2_transition_27_n = n_pc2_27;
-        
+
         % PC2 vs bvFTD
         valid_pc2_bvftd = ~isnan(pc2_score) & ~isnan(analysis_data.bvFTD);
         [r_pc2_bvftd, p_pc2_bvftd] = corr(pc2_score(valid_pc2_bvftd), ...
@@ -1520,26 +1338,7 @@ if ~isempty(available_symptom_vars)
         results_4_2.pc3_transition_26_r = r_pc3_26;
         results_4_2.pc3_transition_26_p = p_pc3_26;
         results_4_2.pc3_transition_26_n = n_pc3_26;
-        
-        % PC3 vs Transition-27
-        valid_pc3_27 = ~isnan(pc3_score) & ~isnan(analysis_data.Transition_27);
-        [r_pc3_27, p_pc3_27] = corr(pc3_score(valid_pc3_27), ...
-            analysis_data.Transition_27(valid_pc3_27));
-        n_pc3_27 = sum(valid_pc3_27);
-        ci_pc3_27 = ci_r(r_pc3_27, n_pc3_27);
-        fprintf('  PC3 vs Transition-27:\n');
-        fprintf('    r = %.3f [%.3f, %.3f]\n', r_pc3_27, ci_pc3_27(1), ci_pc3_27(2));
-        fprintf('    p = %.4f\n', p_pc3_27);
-        fprintf('    n = %d', n_pc3_27);
-        if p_pc3_27 < 0.05
-            fprintf(' *** SIGNIFICANT ***\n\n');
-        else
-            fprintf('\n\n');
-        end
-        results_4_2.pc3_transition_27_r = r_pc3_27;
-        results_4_2.pc3_transition_27_p = p_pc3_27;
-        results_4_2.pc3_transition_27_n = n_pc3_27;
-        
+
         % PC3 vs bvFTD
         valid_pc3_bvftd = ~isnan(pc3_score) & ~isnan(analysis_data.bvFTD);
         [r_pc3_bvftd, p_pc3_bvftd] = corr(pc3_score(valid_pc3_bvftd), ...
@@ -1575,13 +1374,7 @@ if ~isempty(available_symptom_vars)
         pca_correlation_summary.Trans26_n = [n_pc1_26; n_pc2_26; n_pc3_26];
         pca_correlation_summary.Trans26_CI_lower = [ci_pc1_26(1); ci_pc2_26(1); ci_pc3_26(1)];
         pca_correlation_summary.Trans26_CI_upper = [ci_pc1_26(2); ci_pc2_26(2); ci_pc3_26(2)];
-        
-        pca_correlation_summary.Trans27_r = [r_pc1_27; r_pc2_27; r_pc3_27];
-        pca_correlation_summary.Trans27_p = [p_pc1_27; p_pc2_27; p_pc3_27];
-        pca_correlation_summary.Trans27_n = [n_pc1_27; n_pc2_27; n_pc3_27];
-        pca_correlation_summary.Trans27_CI_lower = [ci_pc1_27(1); ci_pc2_27(1); ci_pc3_27(1)];
-        pca_correlation_summary.Trans27_CI_upper = [ci_pc1_27(2); ci_pc2_27(2); ci_pc3_27(2)];
-        
+
         pca_correlation_summary.bvFTD_r = [r_pc1_bvftd; r_pc2_bvftd; r_pc3_bvftd];
         pca_correlation_summary.bvFTD_p = [p_pc1_bvftd; p_pc2_bvftd; p_pc3_bvftd];
         pca_correlation_summary.bvFTD_n = [n_pc1_bvftd; n_pc2_bvftd; n_pc3_bvftd];
@@ -1643,24 +1436,24 @@ if ~isempty(available_symptom_vars)
         fprintf('  Saved: Fig_4_2_PCA_Comprehensive_Loadings.png/.fig\n');
         
         % Figure 2: PC Correlation Heatmap
-        figure('Position', [100 100 1000 400]);
-        
-        corr_matrix = [r_pc1_26, r_pc1_27, r_pc1_bvftd; ...
-                      r_pc2_26, r_pc2_27, r_pc2_bvftd; ...
-                      r_pc3_26, r_pc3_27, r_pc3_bvftd];
-        
+        figure('Position', [100 100 700 400]);
+
+        corr_matrix = [r_pc1_26, r_pc1_bvftd; ...
+                      r_pc2_26, r_pc2_bvftd; ...
+                      r_pc3_26, r_pc3_bvftd];
+
         imagesc(corr_matrix);
         colorbar;
         colormap(redblue);
         caxis([-0.3 0.3]);
-        
-        set(gca, 'XTick', 1:3, 'XTickLabel', {'Trans-26', 'Trans-27', 'bvFTD'}, ...
+
+        set(gca, 'XTick', 1:2, 'XTickLabel', {'Trans-26', 'bvFTD'}, ...
             'YTick', 1:3, 'YTickLabel', {'PC1', 'PC2', 'PC3'}, 'FontSize', 12);
         title('PCA Component Correlations with Decision Scores', 'FontWeight', 'bold', 'FontSize', 14);
         
         % Add correlation values as text
         for i = 1:3
-            for j = 1:3
+            for j = 1:2
                 text(j, i, sprintf('%.3f', corr_matrix(i,j)), ...
                     'HorizontalAlignment', 'center', ...
                     'FontSize', 12, 'FontWeight', 'bold', ...
@@ -1675,13 +1468,10 @@ if ~isempty(available_symptom_vars)
         % Figure 3: Scatter plots for all significant PC correlations
         sig_pcs = [];
         if p_pc1_26 < 0.05, sig_pcs = [sig_pcs; 1, 26]; end
-        if p_pc1_27 < 0.05, sig_pcs = [sig_pcs; 1, 27]; end
         if p_pc1_bvftd < 0.05, sig_pcs = [sig_pcs; 1, 0]; end
         if p_pc2_26 < 0.05, sig_pcs = [sig_pcs; 2, 26]; end
-        if p_pc2_27 < 0.05, sig_pcs = [sig_pcs; 2, 27]; end
         if p_pc2_bvftd < 0.05, sig_pcs = [sig_pcs; 2, 0]; end
         if p_pc3_26 < 0.05, sig_pcs = [sig_pcs; 3, 26]; end
-        if p_pc3_27 < 0.05, sig_pcs = [sig_pcs; 3, 27]; end
         if p_pc3_bvftd < 0.05, sig_pcs = [sig_pcs; 3, 0]; end
         
         if ~isempty(sig_pcs)
@@ -1715,13 +1505,6 @@ if ~isempty(available_symptom_vars)
                     if pc_num == 1, r_val = r_pc1_26; p_val = p_pc1_26;
                     elseif pc_num == 2, r_val = r_pc2_26; p_val = p_pc2_26;
                     else, r_val = r_pc3_26; p_val = p_pc3_26; end
-                elseif model_id == 27
-                    ds_data = analysis_data.Transition_27;
-                    ds_label = 'Transition-27';
-                    color = [0.8 0.4 0.2];
-                    if pc_num == 1, r_val = r_pc1_27; p_val = p_pc1_27;
-                    elseif pc_num == 2, r_val = r_pc2_27; p_val = p_pc2_27;
-                    else, r_val = r_pc3_27; p_val = p_pc3_27; end
                 else
                     ds_data = analysis_data.bvFTD;
                     ds_label = 'bvFTD';
@@ -1760,9 +1543,9 @@ if ~isempty(available_symptom_vars)
     % Create interpretable labels for heatmap
     symptom_labels = cellfun(@(x) get_label(x), symptom_names_clean, 'UniformOutput', false);
     
-    figure('Position', [100 100 1400 500]);
-    
-    subplot(1,3,1);
+    figure('Position', [100 100 1000 500]);
+
+    subplot(1,2,1);
     imagesc(symptom_corr_26(:,1)');
     colorbar;
     colormap(redblue);
@@ -1770,17 +1553,8 @@ if ~isempty(available_symptom_vars)
     set(gca, 'XTick', 1:length(symptom_names_clean), 'XTickLabel', symptom_labels, ...
         'XTickLabelRotation', 45, 'YTick', 1, 'YTickLabel', {'r'});
     title('Symptom Severity vs Transition-26', 'FontWeight', 'bold');
-    
-    subplot(1,3,2);
-    imagesc(symptom_corr_27(:,1)');
-    colorbar;
-    colormap(redblue);
-    caxis([-0.5 0.5]);
-    set(gca, 'XTick', 1:length(symptom_names_clean), 'XTickLabel', symptom_labels, ...
-        'XTickLabelRotation', 45, 'YTick', 1, 'YTickLabel', {'r'});
-    title('Symptom Severity vs Transition-27', 'FontWeight', 'bold');
-    
-    subplot(1,3,3);
+
+    subplot(1,2,2);
     imagesc(symptom_corr_bvftd(:,1)');
     colorbar;
     colormap(redblue);
@@ -1803,14 +1577,6 @@ if ~isempty(available_symptom_vars)
     symptom_corr_summary.Transition_26_n = symptom_corr_26(:,3);
     symptom_corr_summary.Transition_26_CI_lower = symptom_corr_26(:,4);
     symptom_corr_summary.Transition_26_CI_upper = symptom_corr_26(:,5);
-    symptom_corr_summary.Transition_27_r = symptom_corr_27(:,1);
-    symptom_corr_summary.Transition_27_p = symptom_corr_27(:,2);
-    symptom_corr_summary.Transition_27_Uncorrected_significant = symptom_corr_27(:,2) < 0.05;
-    symptom_corr_summary.Transition_27_p_FDR = adj_p_27;
-    symptom_corr_summary.Transition_27_FDR_significant = h_fdr_27;
-    symptom_corr_summary.Transition_27_n = symptom_corr_27(:,3);
-    symptom_corr_summary.Transition_27_CI_lower = symptom_corr_27(:,4);
-    symptom_corr_summary.Transition_27_CI_upper = symptom_corr_27(:,5);
     symptom_corr_summary.bvFTD_r = symptom_corr_bvftd(:,1);
     symptom_corr_summary.bvFTD_p = symptom_corr_bvftd(:,2);
     symptom_corr_summary.bvFTD_Uncorrected_significant = symptom_corr_bvftd(:,2) < 0.05;
@@ -1871,17 +1637,7 @@ if ~isempty(available_age_onset_vars)
         else
             age_onset_corr_26 = [age_onset_corr_26; NaN, NaN, sum(valid_idx), NaN, NaN];
         end
-        
-        valid_idx = ~isnan(var_data) & ~isnan(analysis_data.Transition_27);
-        if sum(valid_idx) >= 30
-            [r, p] = corr(var_data(valid_idx), analysis_data.Transition_27(valid_idx));
-            n = sum(valid_idx);
-            ci = ci_r(r, n);
-            age_onset_corr_27 = [age_onset_corr_27; r, p, n, ci(1), ci(2)];
-        else
-            age_onset_corr_27 = [age_onset_corr_27; NaN, NaN, sum(valid_idx), NaN, NaN];
-        end
-        
+
         valid_idx = ~isnan(var_data) & ~isnan(analysis_data.bvFTD);
         if sum(valid_idx) >= 30
             [r, p] = corr(var_data(valid_idx), analysis_data.bvFTD(valid_idx));
@@ -1895,7 +1651,6 @@ if ~isempty(available_age_onset_vars)
     fprintf('\n');
     
     results_4_3.age_onset_correlations_26 = age_onset_corr_26;
-    results_4_3.age_onset_correlations_27 = age_onset_corr_27;
     results_4_3.age_onset_correlations_bvftd = age_onset_corr_bvftd;
 end
 
@@ -1929,17 +1684,7 @@ if ~isempty(illness_duration_vars)
             else
                 duration_corr_26 = [duration_corr_26; NaN, NaN, sum(valid_idx), NaN, NaN];
             end
-            
-            valid_idx = ~isnan(var_data) & ~isnan(analysis_data.Transition_27);
-            if sum(valid_idx) >= 30
-                [r, p] = corr(var_data(valid_idx), analysis_data.Transition_27(valid_idx));
-                n = sum(valid_idx);
-                ci = ci_r(r, n);
-                duration_corr_27 = [duration_corr_27; r, p, n, ci(1), ci(2)];
-            else
-                duration_corr_27 = [duration_corr_27; NaN, NaN, sum(valid_idx), NaN, NaN];
-            end
-            
+
             valid_idx = ~isnan(var_data) & ~isnan(analysis_data.bvFTD);
             if sum(valid_idx) >= 30
                 [r, p] = corr(var_data(valid_idx), analysis_data.bvFTD(valid_idx));
@@ -1954,7 +1699,6 @@ if ~isempty(illness_duration_vars)
     fprintf('\n');
     
     results_4_3.illness_duration_correlations_26 = duration_corr_26;
-    results_4_3.illness_duration_correlations_27 = duration_corr_27;
     results_4_3.illness_duration_correlations_bvftd = duration_corr_bvftd;
 end
 
@@ -1995,17 +1739,7 @@ if ~isempty(available_recency_vars)
         else
             recency_corr_26 = [recency_corr_26; NaN, NaN, sum(valid_idx), NaN, NaN];
         end
-        
-        valid_idx = ~isnan(var_data) & ~isnan(analysis_data.Transition_27);
-        if sum(valid_idx) >= 30
-            [r, p] = corr(var_data(valid_idx), analysis_data.Transition_27(valid_idx));
-            n = sum(valid_idx);
-            ci = ci_r(r, n);
-            recency_corr_27 = [recency_corr_27; r, p, n, ci(1), ci(2)];
-        else
-            recency_corr_27 = [recency_corr_27; NaN, NaN, sum(valid_idx), NaN, NaN];
-        end
-        
+
         valid_idx = ~isnan(var_data) & ~isnan(analysis_data.bvFTD);
         if sum(valid_idx) >= 30
             [r, p] = corr(var_data(valid_idx), analysis_data.bvFTD(valid_idx));
@@ -2019,9 +1753,8 @@ if ~isempty(available_recency_vars)
     fprintf('\n');
     
     results_4_3.recency_correlations_26 = recency_corr_26;
-    results_4_3.recency_correlations_27 = recency_corr_27;
     results_4_3.recency_correlations_bvftd = recency_corr_bvftd;
-    
+
     % Save recency correlations summary
     recency_summary = table();
     recency_summary.Variable = available_recency_vars';
@@ -2031,12 +1764,6 @@ if ~isempty(available_recency_vars)
     recency_summary.Transition_26_n = recency_corr_26(:,3);
     recency_summary.Transition_26_CI_lower = recency_corr_26(:,4);
     recency_summary.Transition_26_CI_upper = recency_corr_26(:,5);
-    recency_summary.Transition_27_r = recency_corr_27(:,1);
-    recency_summary.Transition_27_p = recency_corr_27(:,2);
-    recency_summary.Transition_27_Uncorrected_significant = recency_corr_27(:,2) < 0.05;
-    recency_summary.Transition_27_n = recency_corr_27(:,3);
-    recency_summary.Transition_27_CI_lower = recency_corr_27(:,4);
-    recency_summary.Transition_27_CI_upper = recency_corr_27(:,5);
     recency_summary.bvFTD_r = recency_corr_bvftd(:,1);
     recency_summary.bvFTD_p = recency_corr_bvftd(:,2);
     recency_summary.bvFTD_Uncorrected_significant = recency_corr_bvftd(:,2) < 0.05;
@@ -2054,15 +1781,13 @@ if ~isempty(available_clinical_history_vars)
     fprintf('  ----------------------------------------\n');
     
     clinical_corr_26 = [];
-    clinical_corr_27 = [];
     clinical_corr_bvftd = [];
-    
+
     for i = 1:length(available_clinical_history_vars)
         var_data = analysis_data.(available_clinical_history_vars{i});
-        
+
         if ~isnumeric(var_data)
             clinical_corr_26 = [clinical_corr_26; NaN, NaN, 0, NaN, NaN];
-            clinical_corr_27 = [clinical_corr_27; NaN, NaN, 0, NaN, NaN];
             clinical_corr_bvftd = [clinical_corr_bvftd; NaN, NaN, 0, NaN, NaN];
             continue;
         end
@@ -2085,17 +1810,7 @@ if ~isempty(available_clinical_history_vars)
             fprintf('  %-25s     -       -   %5d (insufficient data)\n', ...
                 available_clinical_history_vars{i}, sum(valid_idx));
         end
-        
-        valid_idx = ~isnan(var_data) & ~isnan(analysis_data.Transition_27);
-        if sum(valid_idx) >= 30
-            [r, p] = corr(var_data(valid_idx), analysis_data.Transition_27(valid_idx));
-            n = sum(valid_idx);
-            ci = ci_r(r, n);
-            clinical_corr_27 = [clinical_corr_27; r, p, n, ci(1), ci(2)];
-        else
-            clinical_corr_27 = [clinical_corr_27; NaN, NaN, sum(valid_idx), NaN, NaN];
-        end
-        
+
         valid_idx = ~isnan(var_data) & ~isnan(analysis_data.bvFTD);
         if sum(valid_idx) >= 30
             [r, p] = corr(var_data(valid_idx), analysis_data.bvFTD(valid_idx));
@@ -2109,20 +1824,15 @@ if ~isempty(available_clinical_history_vars)
     fprintf('\n');
     
     results_4_3.clinical_history_correlations_26 = clinical_corr_26;
-    results_4_3.clinical_history_correlations_27 = clinical_corr_27;
     results_4_3.clinical_history_correlations_bvftd = clinical_corr_bvftd;
 
     % FEATURE 1.3: FDR CORRECTION
     [h_fdr_clin_26, crit_p_clin_26, adj_p_clin_26] = fdr_bh(clinical_corr_26(:,2), 0.05);
-    [h_fdr_clin_27, crit_p_clin_27, adj_p_clin_27] = fdr_bh(clinical_corr_27(:,2), 0.05);
     [h_fdr_clin_bvftd, crit_p_clin_bvftd, adj_p_clin_bvftd] = fdr_bh(clinical_corr_bvftd(:,2), 0.05);
     fprintf('\n  FDR CORRECTION (q=0.05):\n');
     fprintf('    Trans-26: %d/%d significant (uncorrected: %d/%d)\n', ...
         sum(h_fdr_clin_26), length(h_fdr_clin_26), ...
         sum(clinical_corr_26(:,2) < 0.05 & ~isnan(clinical_corr_26(:,2))), length(h_fdr_clin_26));
-    fprintf('    Trans-27: %d/%d significant (uncorrected: %d/%d)\n', ...
-        sum(h_fdr_clin_27), length(h_fdr_clin_27), ...
-        sum(clinical_corr_27(:,2) < 0.05 & ~isnan(clinical_corr_27(:,2))), length(h_fdr_clin_27));
     fprintf('    bvFTD: %d/%d significant (uncorrected: %d/%d)\n\n', ...
         sum(h_fdr_clin_bvftd), length(h_fdr_clin_bvftd), ...
         sum(clinical_corr_bvftd(:,2) < 0.05 & ~isnan(clinical_corr_bvftd(:,2))), length(h_fdr_clin_bvftd));
@@ -2137,14 +1847,6 @@ if ~isempty(available_clinical_history_vars)
     clinical_summary.Transition_26_n = clinical_corr_26(:,3);
     clinical_summary.Transition_26_CI_lower = clinical_corr_26(:,4);
     clinical_summary.Transition_26_CI_upper = clinical_corr_26(:,5);
-    clinical_summary.Transition_27_r = clinical_corr_27(:,1);
-    clinical_summary.Transition_27_p = clinical_corr_27(:,2);
-    clinical_summary.Transition_27_Uncorrected_significant = clinical_corr_27(:,2) < 0.05;
-    clinical_summary.Transition_27_p_FDR = adj_p_clin_27;
-    clinical_summary.Transition_27_FDR_significant = h_fdr_clin_27;
-    clinical_summary.Transition_27_n = clinical_corr_27(:,3);
-    clinical_summary.Transition_27_CI_lower = clinical_corr_27(:,4);
-    clinical_summary.Transition_27_CI_upper = clinical_corr_27(:,5);
     clinical_summary.bvFTD_r = clinical_corr_bvftd(:,1);
     clinical_summary.bvFTD_p = clinical_corr_bvftd(:,2);
     clinical_summary.bvFTD_Uncorrected_significant = clinical_corr_bvftd(:,2) < 0.05;
@@ -2164,15 +1866,13 @@ if ~isempty(available_childhood_vars)
     fprintf('  ----------------------------------------\n');
     
     childhood_corr_26 = [];
-    childhood_corr_27 = [];
     childhood_corr_bvftd = [];
-    
+
     for i = 1:length(available_childhood_vars)
         var_data = analysis_data.(available_childhood_vars{i});
-        
+
         if ~isnumeric(var_data)
             childhood_corr_26 = [childhood_corr_26; NaN, NaN, 0, NaN, NaN];
-            childhood_corr_27 = [childhood_corr_27; NaN, NaN, 0, NaN, NaN];
             childhood_corr_bvftd = [childhood_corr_bvftd; NaN, NaN, 0, NaN, NaN];
             continue;
         end
@@ -2193,17 +1893,7 @@ if ~isempty(available_childhood_vars)
         else
             childhood_corr_26 = [childhood_corr_26; NaN, NaN, sum(valid_idx), NaN, NaN];
         end
-        
-        valid_idx = ~isnan(var_data) & ~isnan(analysis_data.Transition_27);
-        if sum(valid_idx) >= 30
-            [r, p] = corr(var_data(valid_idx), analysis_data.Transition_27(valid_idx));
-            n = sum(valid_idx);
-            ci = ci_r(r, n);
-            childhood_corr_27 = [childhood_corr_27; r, p, n, ci(1), ci(2)];
-        else
-            childhood_corr_27 = [childhood_corr_27; NaN, NaN, sum(valid_idx), NaN, NaN];
-        end
-        
+
         valid_idx = ~isnan(var_data) & ~isnan(analysis_data.bvFTD);
         if sum(valid_idx) >= 30
             [r, p] = corr(var_data(valid_idx), analysis_data.bvFTD(valid_idx));
@@ -2217,20 +1907,15 @@ if ~isempty(available_childhood_vars)
     fprintf('\n');
     
     results_4_3.childhood_adversity_correlations_26 = childhood_corr_26;
-    results_4_3.childhood_adversity_correlations_27 = childhood_corr_27;
     results_4_3.childhood_adversity_correlations_bvftd = childhood_corr_bvftd;
 
     % FEATURE 1.3: FDR CORRECTION
     [h_fdr_child_26, crit_p_child_26, adj_p_child_26] = fdr_bh(childhood_corr_26(:,2), 0.05);
-    [h_fdr_child_27, crit_p_child_27, adj_p_child_27] = fdr_bh(childhood_corr_27(:,2), 0.05);
     [h_fdr_child_bvftd, crit_p_child_bvftd, adj_p_child_bvftd] = fdr_bh(childhood_corr_bvftd(:,2), 0.05);
     fprintf('\n  FDR CORRECTION (q=0.05):\n');
     fprintf('    Trans-26: %d/%d significant (uncorrected: %d/%d)\n', ...
         sum(h_fdr_child_26), length(h_fdr_child_26), ...
         sum(childhood_corr_26(:,2) < 0.05 & ~isnan(childhood_corr_26(:,2))), length(h_fdr_child_26));
-    fprintf('    Trans-27: %d/%d significant (uncorrected: %d/%d)\n', ...
-        sum(h_fdr_child_27), length(h_fdr_child_27), ...
-        sum(childhood_corr_27(:,2) < 0.05 & ~isnan(childhood_corr_27(:,2))), length(h_fdr_child_27));
     fprintf('    bvFTD: %d/%d significant (uncorrected: %d/%d)\n\n', ...
         sum(h_fdr_child_bvftd), length(h_fdr_child_bvftd), ...
         sum(childhood_corr_bvftd(:,2) < 0.05 & ~isnan(childhood_corr_bvftd(:,2))), length(h_fdr_child_bvftd));
@@ -2245,14 +1930,6 @@ if ~isempty(available_childhood_vars)
     childhood_summary.Transition_26_n = childhood_corr_26(:,3);
     childhood_summary.Transition_26_CI_lower = childhood_corr_26(:,4);
     childhood_summary.Transition_26_CI_upper = childhood_corr_26(:,5);
-    childhood_summary.Transition_27_r = childhood_corr_27(:,1);
-    childhood_summary.Transition_27_p = childhood_corr_27(:,2);
-    childhood_summary.Transition_27_Uncorrected_significant = childhood_corr_27(:,2) < 0.05;
-    childhood_summary.Transition_27_p_FDR = adj_p_child_27;
-    childhood_summary.Transition_27_FDR_significant = h_fdr_child_27;
-    childhood_summary.Transition_27_n = childhood_corr_27(:,3);
-    childhood_summary.Transition_27_CI_lower = childhood_corr_27(:,4);
-    childhood_summary.Transition_27_CI_upper = childhood_corr_27(:,5);
     childhood_summary.bvFTD_r = childhood_corr_bvftd(:,1);
     childhood_summary.bvFTD_p = childhood_corr_bvftd(:,2);
     childhood_summary.bvFTD_Uncorrected_significant = childhood_corr_bvftd(:,2) < 0.05;
@@ -2296,18 +1973,7 @@ if ismember('Age', analysis_data.Properties.VariableNames)
     else
         demo_corr_26 = [demo_corr_26; NaN, NaN, sum(valid_idx), NaN, NaN];
     end
-    
-    valid_idx = ~isnan(age_data) & ~isnan(analysis_data.Transition_27);
-    if sum(valid_idx) >= 30
-        [r, p] = corr(age_data(valid_idx), analysis_data.Transition_27(valid_idx));
-        n = sum(valid_idx);
-        ci = ci_r(r, n);
-        demo_corr_27 = [demo_corr_27; r, p, n, ci(1), ci(2)];
-        fprintf('    Transition-27: r=%.3f [%.3f, %.3f], p=%.4f, n=%d\n', r, ci(1), ci(2), p, n);
-    else
-        demo_corr_27 = [demo_corr_27; NaN, NaN, sum(valid_idx), NaN, NaN];
-    end
-    
+
     valid_idx = ~isnan(age_data) & ~isnan(analysis_data.bvFTD);
     if sum(valid_idx) >= 30
         [r, p] = corr(age_data(valid_idx), analysis_data.bvFTD(valid_idx));
@@ -2335,18 +2001,7 @@ if ismember('Sexe', analysis_data.Properties.VariableNames)
     else
         demo_corr_26 = [demo_corr_26; NaN, NaN, sum(valid_idx), NaN, NaN];
     end
-    
-    valid_idx = ~isnan(sex_data) & ~isnan(analysis_data.Transition_27);
-    if sum(valid_idx) >= 30
-        [r, p] = corr(sex_data(valid_idx), analysis_data.Transition_27(valid_idx));
-        n = sum(valid_idx);
-        ci = ci_r(r, n);
-        demo_corr_27 = [demo_corr_27; r, p, n, ci(1), ci(2)];
-        fprintf('    Transition-27: r=%.3f [%.3f, %.3f], p=%.4f, n=%d\n', r, ci(1), ci(2), p, n);
-    else
-        demo_corr_27 = [demo_corr_27; NaN, NaN, sum(valid_idx), NaN, NaN];
-    end
-    
+
     valid_idx = ~isnan(sex_data) & ~isnan(analysis_data.bvFTD);
     if sum(valid_idx) >= 30
         [r, p] = corr(sex_data(valid_idx), analysis_data.bvFTD(valid_idx));
@@ -2374,18 +2029,7 @@ if ismember('aedu', analysis_data.Properties.VariableNames)
     else
         demo_corr_26 = [demo_corr_26; NaN, NaN, sum(valid_idx), NaN, NaN];
     end
-    
-    valid_idx = ~isnan(edu_data) & ~isnan(analysis_data.Transition_27);
-    if sum(valid_idx) >= 30
-        [r, p] = corr(edu_data(valid_idx), analysis_data.Transition_27(valid_idx));
-        n = sum(valid_idx);
-        ci = ci_r(r, n);
-        demo_corr_27 = [demo_corr_27; r, p, n, ci(1), ci(2)];
-        fprintf('    Transition-27: r=%.3f [%.3f, %.3f], p=%.4f, n=%d\n', r, ci(1), ci(2), p, n);
-    else
-        demo_corr_27 = [demo_corr_27; NaN, NaN, sum(valid_idx), NaN, NaN];
-    end
-    
+
     valid_idx = ~isnan(edu_data) & ~isnan(analysis_data.bvFTD);
     if sum(valid_idx) >= 30
         [r, p] = corr(edu_data(valid_idx), analysis_data.bvFTD(valid_idx));
@@ -2413,18 +2057,7 @@ if ismember('amarpart', analysis_data.Properties.VariableNames)
     else
         demo_corr_26 = [demo_corr_26; NaN, NaN, sum(valid_idx), NaN, NaN];
     end
-    
-    valid_idx = ~isnan(marital_data) & ~isnan(analysis_data.Transition_27);
-    if sum(valid_idx) >= 30
-        [r, p] = corr(marital_data(valid_idx), analysis_data.Transition_27(valid_idx));
-        n = sum(valid_idx);
-        ci = ci_r(r, n);
-        demo_corr_27 = [demo_corr_27; r, p, n, ci(1), ci(2)];
-        fprintf('    Transition-27: r=%.3f [%.3f, %.3f], p=%.4f, n=%d\n', r, ci(1), ci(2), p, n);
-    else
-        demo_corr_27 = [demo_corr_27; NaN, NaN, sum(valid_idx), NaN, NaN];
-    end
-    
+
     valid_idx = ~isnan(marital_data) & ~isnan(analysis_data.bvFTD);
     if sum(valid_idx) >= 30
         [r, p] = corr(marital_data(valid_idx), analysis_data.bvFTD(valid_idx));
@@ -2440,15 +2073,11 @@ end
 if ~isempty(demo_vars_analyzed)
     % FEATURE 1.3: FDR CORRECTION
     [h_fdr_demo_26, crit_p_demo_26, adj_p_demo_26] = fdr_bh(demo_corr_26(:,2), 0.05);
-    [h_fdr_demo_27, crit_p_demo_27, adj_p_demo_27] = fdr_bh(demo_corr_27(:,2), 0.05);
     [h_fdr_demo_bvftd, crit_p_demo_bvftd, adj_p_demo_bvftd] = fdr_bh(demo_corr_bvftd(:,2), 0.05);
     fprintf('\n  FDR CORRECTION (q=0.05):\n');
     fprintf('    Trans-26: %d/%d significant (uncorrected: %d/%d)\n', ...
         sum(h_fdr_demo_26), length(h_fdr_demo_26), ...
         sum(demo_corr_26(:,2) < 0.05 & ~isnan(demo_corr_26(:,2))), length(h_fdr_demo_26));
-    fprintf('    Trans-27: %d/%d significant (uncorrected: %d/%d)\n', ...
-        sum(h_fdr_demo_27), length(h_fdr_demo_27), ...
-        sum(demo_corr_27(:,2) < 0.05 & ~isnan(demo_corr_27(:,2))), length(h_fdr_demo_27));
     fprintf('    bvFTD: %d/%d significant (uncorrected: %d/%d)\n\n', ...
         sum(h_fdr_demo_bvftd), length(h_fdr_demo_bvftd), ...
         sum(demo_corr_bvftd(:,2) < 0.05 & ~isnan(demo_corr_bvftd(:,2))), length(h_fdr_demo_bvftd));
@@ -2463,14 +2092,6 @@ if ~isempty(demo_vars_analyzed)
     demographics_summary.Transition_26_n = demo_corr_26(:,3);
     demographics_summary.Transition_26_CI_lower = demo_corr_26(:,4);
     demographics_summary.Transition_26_CI_upper = demo_corr_26(:,5);
-    demographics_summary.Transition_27_r = demo_corr_27(:,1);
-    demographics_summary.Transition_27_p = demo_corr_27(:,2);
-    demographics_summary.Transition_27_Uncorrected_significant = demo_corr_27(:,2) < 0.05;
-    demographics_summary.Transition_27_p_FDR = adj_p_demo_27;
-    demographics_summary.Transition_27_FDR_significant = h_fdr_demo_27;
-    demographics_summary.Transition_27_n = demo_corr_27(:,3);
-    demographics_summary.Transition_27_CI_lower = demo_corr_27(:,4);
-    demographics_summary.Transition_27_CI_upper = demo_corr_27(:,5);
     demographics_summary.bvFTD_r = demo_corr_bvftd(:,1);
     demographics_summary.bvFTD_p = demo_corr_bvftd(:,2);
     demographics_summary.bvFTD_Uncorrected_significant = demo_corr_bvftd(:,2) < 0.05;
@@ -2558,17 +2179,7 @@ if ~isempty(cognitive_vars_found)
             else
                 cognitive_corr_26 = [cognitive_corr_26; NaN, NaN, sum(valid_idx), NaN, NaN];
             end
-            
-            valid_idx = ~isnan(var_data) & ~isnan(analysis_data.Transition_27);
-            if sum(valid_idx) >= 30
-                [r, p] = corr(var_data(valid_idx), analysis_data.Transition_27(valid_idx));
-                n = sum(valid_idx);
-                ci = ci_r(r, n);
-                cognitive_corr_27 = [cognitive_corr_27; r, p, n, ci(1), ci(2)];
-            else
-                cognitive_corr_27 = [cognitive_corr_27; NaN, NaN, sum(valid_idx), NaN, NaN];
-            end
-            
+
             valid_idx = ~isnan(var_data) & ~isnan(analysis_data.bvFTD);
             if sum(valid_idx) >= 30
                 [r, p] = corr(var_data(valid_idx), analysis_data.bvFTD(valid_idx));
@@ -2583,7 +2194,6 @@ if ~isempty(cognitive_vars_found)
     fprintf('\n');
     
     results_4_4.cognitive_correlations_26 = cognitive_corr_26;
-    results_4_4.cognitive_correlations_27 = cognitive_corr_27;
     results_4_4.cognitive_correlations_bvftd = cognitive_corr_bvftd;
     
     if ~isempty(cognitive_corr_26)
@@ -2595,12 +2205,6 @@ if ~isempty(cognitive_vars_found)
         cognitive_summary.Transition_26_n = cognitive_corr_26(:,3);
         cognitive_summary.Transition_26_CI_lower = cognitive_corr_26(:,4);
         cognitive_summary.Transition_26_CI_upper = cognitive_corr_26(:,5);
-        cognitive_summary.Transition_27_r = cognitive_corr_27(:,1);
-        cognitive_summary.Transition_27_p = cognitive_corr_27(:,2);
-        cognitive_summary.Transition_27_Uncorrected_significant = cognitive_corr_27(:,2) < 0.05;
-        cognitive_summary.Transition_27_n = cognitive_corr_27(:,3);
-        cognitive_summary.Transition_27_CI_lower = cognitive_corr_27(:,4);
-        cognitive_summary.Transition_27_CI_upper = cognitive_corr_27(:,5);
         cognitive_summary.bvFTD_r = cognitive_corr_bvftd(:,1);
         cognitive_summary.bvFTD_p = cognitive_corr_bvftd(:,2);
         cognitive_summary.bvFTD_Uncorrected_significant = cognitive_corr_bvftd(:,2) < 0.05;
@@ -2858,18 +2462,7 @@ if ~isempty(available_med_ddd)
         else
             med_ddd_corr_26 = [med_ddd_corr_26; NaN, NaN, sum(valid_idx), NaN, NaN];
         end
-        
-        % Transition-27
-        valid_idx = ~isnan(var_data) & ~isnan(patient_data.Transition_27);
-        if sum(valid_idx) >= 30
-            [r, p] = corr(var_data(valid_idx), patient_data.Transition_27(valid_idx));
-            n = sum(valid_idx);
-            ci = ci_r(r, n);
-            med_ddd_corr_27 = [med_ddd_corr_27; r, p, n, ci(1), ci(2)];
-        else
-            med_ddd_corr_27 = [med_ddd_corr_27; NaN, NaN, sum(valid_idx), NaN, NaN];
-        end
-        
+
         % bvFTD
         valid_idx = ~isnan(var_data) & ~isnan(patient_data.bvFTD);
         if sum(valid_idx) >= 30
@@ -2884,7 +2477,6 @@ if ~isempty(available_med_ddd)
     fprintf('\n');
     
     results_medication.ddd_correlations_26 = med_ddd_corr_26;
-    results_medication.ddd_correlations_27 = med_ddd_corr_27;
     results_medication.ddd_correlations_bvftd = med_ddd_corr_bvftd;
 else
     fprintf('  NO DDD VARIABLES WITH SUFFICIENT DATA (n>=30)\n\n');
@@ -2958,18 +2550,7 @@ if ~isempty(available_med_freq)
         else
             med_freq_corr_26 = [med_freq_corr_26; NaN, NaN, sum(valid_idx), NaN, NaN];
         end
-        
-        % Transition-27
-        valid_idx = ~isnan(var_data) & ~isnan(patient_data.Transition_27);
-        if sum(valid_idx) >= 30
-            [r, p] = corr(var_data(valid_idx), patient_data.Transition_27(valid_idx));
-            n = sum(valid_idx);
-            ci = ci_r(r, n);
-            med_freq_corr_27 = [med_freq_corr_27; r, p, n, ci(1), ci(2)];
-        else
-            med_freq_corr_27 = [med_freq_corr_27; NaN, NaN, sum(valid_idx), NaN, NaN];
-        end
-        
+
         % bvFTD
         valid_idx = ~isnan(var_data) & ~isnan(patient_data.bvFTD);
         if sum(valid_idx) >= 30
@@ -2984,7 +2565,6 @@ if ~isempty(available_med_freq)
     fprintf('\n');
     
     results_medication.freq_correlations_26 = med_freq_corr_26;
-    results_medication.freq_correlations_27 = med_freq_corr_27;
     results_medication.freq_correlations_bvftd = med_freq_corr_bvftd;
 else
     fprintf('  NO FREQUENCY VARIABLES WITH SUFFICIENT DATA (n>=30)\n\n');
@@ -3057,18 +2637,7 @@ if ~isempty(available_med_binary)
         else
             med_binary_corr_26 = [med_binary_corr_26; NaN, NaN, sum(valid_idx), NaN, NaN];
         end
-        
-        % Transition-27
-        valid_idx = ~isnan(var_data) & ~isnan(patient_data.Transition_27);
-        if sum(valid_idx) >= 30
-            [r, p] = corr(var_data(valid_idx), patient_data.Transition_27(valid_idx));
-            n = sum(valid_idx);
-            ci = ci_r(r, n);
-            med_binary_corr_27 = [med_binary_corr_27; r, p, n, ci(1), ci(2)];
-        else
-            med_binary_corr_27 = [med_binary_corr_27; NaN, NaN, sum(valid_idx), NaN, NaN];
-        end
-        
+
         % bvFTD
         valid_idx = ~isnan(var_data) & ~isnan(patient_data.bvFTD);
         if sum(valid_idx) >= 30
@@ -3083,7 +2652,6 @@ if ~isempty(available_med_binary)
     fprintf('\n');
     
     results_medication.binary_correlations_26 = med_binary_corr_26;
-    results_medication.binary_correlations_27 = med_binary_corr_27;
     results_medication.binary_correlations_bvftd = med_binary_corr_bvftd;
 else
     fprintf('  NO BINARY MEDICATION VARIABLES WITH SUFFICIENT DATA (n>=30)\n\n');
@@ -3229,12 +2797,6 @@ if ~isempty(all_med_vars)
     medication_summary.Transition_26_n = all_med_corr_26(:,3);
     medication_summary.Transition_26_CI_lower = all_med_corr_26(:,4);
     medication_summary.Transition_26_CI_upper = all_med_corr_26(:,5);
-    medication_summary.Transition_27_r = all_med_corr_27(:,1);
-    medication_summary.Transition_27_p = all_med_corr_27(:,2);
-    medication_summary.Transition_27_Uncorrected_significant = all_med_corr_27(:,2) < 0.05;
-    medication_summary.Transition_27_n = all_med_corr_27(:,3);
-    medication_summary.Transition_27_CI_lower = all_med_corr_27(:,4);
-    medication_summary.Transition_27_CI_upper = all_med_corr_27(:,5);
     medication_summary.bvFTD_r = all_med_corr_bvftd(:,1);
     medication_summary.bvFTD_p = all_med_corr_bvftd(:,2);
     medication_summary.bvFTD_Uncorrected_significant = all_med_corr_bvftd(:,2) < 0.05;
@@ -3775,11 +3337,9 @@ for i = 1:length(unique_categories)
     
     fprintf('    Significant associations (p<0.05):\n');
     fprintf('      Transition-26: %d/%d (%.1f%%)\n', sig_26, sum(cat_idx), 100*sig_26/sum(cat_idx));
-    fprintf('      Transition-27: %d/%d (%.1f%%)\n', sig_27, sum(cat_idx), 100*sig_27/sum(cat_idx));
     fprintf('      bvFTD: %d/%d (%.1f%%)\n', sig_bvftd, sum(cat_idx), 100*sig_bvftd/sum(cat_idx));
     
     fprintf('    Mean |r| (Transition-26): %.3f\n', mean(abs(all_corr_26(cat_idx, 1))));
-    fprintf('    Mean |r| (Transition-27): %.3f\n', mean(abs(all_corr_27(cat_idx, 1))));
     fprintf('    Mean |r| (bvFTD): %.3f\n\n', mean(abs(all_corr_bvftd(cat_idx, 1))));
 end
 
@@ -3980,7 +3540,6 @@ end
 if ~isempty(corr_data_27)
     univar_tbl_27 = struct2table(vertcat(corr_data_27{:}));
     univar_tbl_27 = sortrows(univar_tbl_27, 'p_uncorrected', 'ascend');
-    univar_tbl_27.Decision_Score = repmat({'Transition-27'}, height(univar_tbl_27), 1);
     writetable(univar_tbl_27, [data_out_path 'Univariate_Correlations_Transition27_FDR_Sorted.csv']);
     fprintf('  ✓ Saved: Univariate_Correlations_Transition27_FDR_Sorted.csv (%d correlations)\n', height(univar_tbl_27));
 end
@@ -4019,8 +3578,8 @@ unique_groups = unique_groups(~cellfun(@isempty, unique_groups));
 fprintf('  Diagnosis groups found: %s\n', strjoin(unique_groups, ', '));
 
 % Prepare data for each decision score
-ds_names = {'Transition_26', 'Transition_27', 'bvFTD'};
-ds_labels = {'Transition-26', 'Transition-27', 'bvFTD'};
+ds_names = {'Transition_26', 'bvFTD'};
+ds_labels = {'Transition-26', 'bvFTD'};
 ds_colors = {[0.2 0.4 0.8], [0.8 0.4 0.2], [0.8 0.2 0.2]};
 
 % Create figure
@@ -4174,8 +3733,8 @@ group_colors('Anxiety') = [0.2 0.4 0.8];     % Blue
 group_colors('Comorbid') = [0.8 0.4 0.8];    % Purple
 
 % Process each decision score
-ds_names = {'Transition_26', 'Transition_27', 'bvFTD'};
-ds_labels = {'Transition-26', 'Transition-27', 'bvFTD'};
+ds_names = {'Transition_26', 'bvFTD'};
+ds_labels = {'Transition-26', 'bvFTD'};
 ds_filenames = {'Age_Interaction_Transition26', 'Age_Interaction_Transition27', ...
                 'Age_Interaction_bvFTD'};
 
@@ -4360,7 +3919,6 @@ fprintf('  Demographics Analysis (%d variables)\n\n', length(demo_vars_analyzed)
 
 fprintf('DECISION SCORES USED:\n');
 fprintf('  - Transition-26 (OOCV-26)\n');
-fprintf('  - Transition-27 (OOCV-27)\n');
 fprintf('  - bvFTD (OOCV-7)\n\n');
 
 fprintf('OUTPUT FILES CREATED:\n');
@@ -4402,7 +3960,6 @@ fprintf('  Total clinical variables analyzed: %d\n', length(all_vars));
 fprintf('  Significant associations (p<0.05):\n');
 fprintf('    - Transition-26: %d (%.1f%%)\n', sum(all_corr_26(:,2) < 0.05), ...
     100*sum(all_corr_26(:,2) < 0.05)/length(all_vars));
-fprintf('    - Transition-27: %d (%.1f%%)\n', sum(all_corr_27(:,2) < 0.05), ...
     100*sum(all_corr_27(:,2) < 0.05)/length(all_vars));
 fprintf('    - bvFTD: %d (%.1f%%)\n', sum(all_corr_bvftd(:,2) < 0.05), ...
     100*sum(all_corr_bvftd(:,2) < 0.05)/length(all_vars));
