@@ -3960,7 +3960,6 @@ fprintf('  Total clinical variables analyzed: %d\n', length(all_vars));
 fprintf('  Significant associations (p<0.05):\n');
 fprintf('    - Transition-26: %d (%.1f%%)\n', sum(all_corr_26(:,2) < 0.05), ...
     100*sum(all_corr_26(:,2) < 0.05)/length(all_vars));
-    100*sum(all_corr_27(:,2) < 0.05)/length(all_vars));
 fprintf('    - bvFTD: %d (%.1f%%)\n', sum(all_corr_bvftd(:,2) < 0.05), ...
     100*sum(all_corr_bvftd(:,2) < 0.05)/length(all_vars));
 
