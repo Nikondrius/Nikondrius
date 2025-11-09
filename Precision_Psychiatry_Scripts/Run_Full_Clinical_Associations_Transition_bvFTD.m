@@ -241,7 +241,7 @@ base_path = '/volume/projects/CV_NESDA/';
 data_path = [base_path 'Data/tabular_data/'];
 transition_path_base = [base_path 'Analysis/Transition_Model/Decision_Scores_Mean_Offset/'];
 bvftd_path_base = [base_path 'Analysis/bvFTD/Decision_Scores_bvFTD/'];
-results_path = [base_path 'Analysis/Transition_Model/Decision_Scores_Mean_Offset/Results_Figures/'];
+results_path = [base_path 'Analysis/Clinical Associations/'];
 
 % Diagnosis data paths
 diagnosis_hc_file = [base_path 'Data/NESDA_Waves/Wave_1/DynStd_Preparation/NESDA_HC.csv'];
@@ -1780,6 +1780,7 @@ if ~isempty(available_symptom_vars)
     symptom_corr_summary.Variable = symptom_names_clean';
     symptom_corr_summary.Transition_26_r = symptom_corr_26(:,1);
     symptom_corr_summary.Transition_26_p = symptom_corr_26(:,2);
+    symptom_corr_summary.Transition_26_Uncorrected_significant = symptom_corr_26(:,2) < 0.05;
     symptom_corr_summary.Transition_26_p_FDR = adj_p_26;
     symptom_corr_summary.Transition_26_FDR_significant = h_fdr_26;
     symptom_corr_summary.Transition_26_n = symptom_corr_26(:,3);
@@ -1787,6 +1788,7 @@ if ~isempty(available_symptom_vars)
     symptom_corr_summary.Transition_26_CI_upper = symptom_corr_26(:,5);
     symptom_corr_summary.Transition_27_r = symptom_corr_27(:,1);
     symptom_corr_summary.Transition_27_p = symptom_corr_27(:,2);
+    symptom_corr_summary.Transition_27_Uncorrected_significant = symptom_corr_27(:,2) < 0.05;
     symptom_corr_summary.Transition_27_p_FDR = adj_p_27;
     symptom_corr_summary.Transition_27_FDR_significant = h_fdr_27;
     symptom_corr_summary.Transition_27_n = symptom_corr_27(:,3);
@@ -1794,6 +1796,7 @@ if ~isempty(available_symptom_vars)
     symptom_corr_summary.Transition_27_CI_upper = symptom_corr_27(:,5);
     symptom_corr_summary.bvFTD_r = symptom_corr_bvftd(:,1);
     symptom_corr_summary.bvFTD_p = symptom_corr_bvftd(:,2);
+    symptom_corr_summary.bvFTD_Uncorrected_significant = symptom_corr_bvftd(:,2) < 0.05;
     symptom_corr_summary.bvFTD_p_FDR = adj_p_bvftd;
     symptom_corr_summary.bvFTD_FDR_significant = h_fdr_bvftd;
     symptom_corr_summary.bvFTD_n = symptom_corr_bvftd(:,3);
@@ -2108,6 +2111,7 @@ if ~isempty(available_clinical_history_vars)
     clinical_summary.Variable = available_clinical_history_vars';
     clinical_summary.Transition_26_r = clinical_corr_26(:,1);
     clinical_summary.Transition_26_p = clinical_corr_26(:,2);
+    clinical_summary.Transition_26_Uncorrected_significant = clinical_corr_26(:,2) < 0.05;
     clinical_summary.Transition_26_p_FDR = adj_p_clin_26;
     clinical_summary.Transition_26_FDR_significant = h_fdr_clin_26;
     clinical_summary.Transition_26_n = clinical_corr_26(:,3);
@@ -2115,6 +2119,7 @@ if ~isempty(available_clinical_history_vars)
     clinical_summary.Transition_26_CI_upper = clinical_corr_26(:,5);
     clinical_summary.Transition_27_r = clinical_corr_27(:,1);
     clinical_summary.Transition_27_p = clinical_corr_27(:,2);
+    clinical_summary.Transition_27_Uncorrected_significant = clinical_corr_27(:,2) < 0.05;
     clinical_summary.Transition_27_p_FDR = adj_p_clin_27;
     clinical_summary.Transition_27_FDR_significant = h_fdr_clin_27;
     clinical_summary.Transition_27_n = clinical_corr_27(:,3);
@@ -2122,6 +2127,7 @@ if ~isempty(available_clinical_history_vars)
     clinical_summary.Transition_27_CI_upper = clinical_corr_27(:,5);
     clinical_summary.bvFTD_r = clinical_corr_bvftd(:,1);
     clinical_summary.bvFTD_p = clinical_corr_bvftd(:,2);
+    clinical_summary.bvFTD_Uncorrected_significant = clinical_corr_bvftd(:,2) < 0.05;
     clinical_summary.bvFTD_p_FDR = adj_p_clin_bvftd;
     clinical_summary.bvFTD_FDR_significant = h_fdr_clin_bvftd;
     clinical_summary.bvFTD_n = clinical_corr_bvftd(:,3);
@@ -2213,6 +2219,7 @@ if ~isempty(available_childhood_vars)
     childhood_summary.Variable = available_childhood_vars';
     childhood_summary.Transition_26_r = childhood_corr_26(:,1);
     childhood_summary.Transition_26_p = childhood_corr_26(:,2);
+    childhood_summary.Transition_26_Uncorrected_significant = childhood_corr_26(:,2) < 0.05;
     childhood_summary.Transition_26_p_FDR = adj_p_child_26;
     childhood_summary.Transition_26_FDR_significant = h_fdr_child_26;
     childhood_summary.Transition_26_n = childhood_corr_26(:,3);
@@ -2220,6 +2227,7 @@ if ~isempty(available_childhood_vars)
     childhood_summary.Transition_26_CI_upper = childhood_corr_26(:,5);
     childhood_summary.Transition_27_r = childhood_corr_27(:,1);
     childhood_summary.Transition_27_p = childhood_corr_27(:,2);
+    childhood_summary.Transition_27_Uncorrected_significant = childhood_corr_27(:,2) < 0.05;
     childhood_summary.Transition_27_p_FDR = adj_p_child_27;
     childhood_summary.Transition_27_FDR_significant = h_fdr_child_27;
     childhood_summary.Transition_27_n = childhood_corr_27(:,3);
@@ -2227,6 +2235,7 @@ if ~isempty(available_childhood_vars)
     childhood_summary.Transition_27_CI_upper = childhood_corr_27(:,5);
     childhood_summary.bvFTD_r = childhood_corr_bvftd(:,1);
     childhood_summary.bvFTD_p = childhood_corr_bvftd(:,2);
+    childhood_summary.bvFTD_Uncorrected_significant = childhood_corr_bvftd(:,2) < 0.05;
     childhood_summary.bvFTD_p_FDR = adj_p_child_bvftd;
     childhood_summary.bvFTD_FDR_significant = h_fdr_child_bvftd;
     childhood_summary.bvFTD_n = childhood_corr_bvftd(:,3);
