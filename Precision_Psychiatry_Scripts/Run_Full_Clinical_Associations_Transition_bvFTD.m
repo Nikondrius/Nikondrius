@@ -1043,9 +1043,9 @@ if ismember('aLCAsubtype', analysis_data.Properties.VariableNames)
         fprintf('\n');
     end
     results_4_1.metabolic_bvftd_p = p_bvftd;
-    
-    figure('Position', [100 100 1200 400]);
-    
+
+    fig = figure('Position', [100 100 1200 400]);
+
     subplot(1,3,1);
     boxplot(analysis_data.Transition_26(valid_idx), subtypes_for_analysis(valid_idx), ...
         'Colors', [0.2 0.4 0.8], 'Symbol', 'k.');
@@ -1053,7 +1053,7 @@ if ismember('aLCAsubtype', analysis_data.Properties.VariableNames)
     xlabel('Metabolic Subtype', 'FontWeight', 'bold');
     title(sprintf('Transition-26\np=%.4f', p_26), 'FontWeight', 'bold');
     grid on;
-    
+
     subplot(1,3,2);
     boxplot(analysis_data.Transition_27(valid_idx_27), subtypes_for_analysis(valid_idx_27), ...
         'Colors', [0.8 0.4 0.2], 'Symbol', 'k.');
@@ -1061,7 +1061,7 @@ if ismember('aLCAsubtype', analysis_data.Properties.VariableNames)
     xlabel('Metabolic Subtype', 'FontWeight', 'bold');
     title(sprintf('Transition-27\np=%.4f', p_27), 'FontWeight', 'bold');
     grid on;
-    
+
     subplot(1,3,3);
     boxplot(analysis_data.bvFTD(valid_idx_bvftd), subtypes_for_analysis(valid_idx_bvftd), ...
         'Colors', [0.8 0.2 0.2], 'Symbol', 'k.');
@@ -1069,10 +1069,15 @@ if ismember('aLCAsubtype', analysis_data.Properties.VariableNames)
     xlabel('Metabolic Subtype', 'FontWeight', 'bold');
     title(sprintf('bvFTD\np=%.4f', p_bvftd), 'FontWeight', 'bold');
     grid on;
-    
-    saveas(gcf, [fig_path 'Fig_4_1_Metabolic_Subtypes.png']);
-    saveas(gcf, [fig_path 'Fig_4_1_Metabolic_Subtypes.fig']);
-    fprintf('\n  Saved: Fig_4_1_Metabolic_Subtypes.png/.fig\n\n');
+
+    % Validate and save figure
+    if ishghandle(fig) && isvalid(fig)
+        saveas(fig, [fig_path 'Fig_4_1_Metabolic_Subtypes.png']);
+        saveas(fig, [fig_path 'Fig_4_1_Metabolic_Subtypes.fig']);
+        fprintf('\n  Saved: Fig_4_1_Metabolic_Subtypes.png/.fig\n\n');
+    else
+        warning('Figure handle invalid, skipping save for Metabolic Subtypes plot');
+    end
 end
 
 if ismember('abmi', analysis_data.Properties.VariableNames)
@@ -2022,16 +2027,19 @@ if ~isempty(available_recency_vars)
     recency_summary.Variable = available_recency_vars';
     recency_summary.Transition_26_r = recency_corr_26(:,1);
     recency_summary.Transition_26_p = recency_corr_26(:,2);
+    recency_summary.Transition_26_Uncorrected_significant = recency_corr_26(:,2) < 0.05;
     recency_summary.Transition_26_n = recency_corr_26(:,3);
     recency_summary.Transition_26_CI_lower = recency_corr_26(:,4);
     recency_summary.Transition_26_CI_upper = recency_corr_26(:,5);
     recency_summary.Transition_27_r = recency_corr_27(:,1);
     recency_summary.Transition_27_p = recency_corr_27(:,2);
+    recency_summary.Transition_27_Uncorrected_significant = recency_corr_27(:,2) < 0.05;
     recency_summary.Transition_27_n = recency_corr_27(:,3);
     recency_summary.Transition_27_CI_lower = recency_corr_27(:,4);
     recency_summary.Transition_27_CI_upper = recency_corr_27(:,5);
     recency_summary.bvFTD_r = recency_corr_bvftd(:,1);
     recency_summary.bvFTD_p = recency_corr_bvftd(:,2);
+    recency_summary.bvFTD_Uncorrected_significant = recency_corr_bvftd(:,2) < 0.05;
     recency_summary.bvFTD_n = recency_corr_bvftd(:,3);
     recency_summary.bvFTD_CI_lower = recency_corr_bvftd(:,4);
     recency_summary.bvFTD_CI_upper = recency_corr_bvftd(:,5);
@@ -2449,6 +2457,7 @@ if ~isempty(demo_vars_analyzed)
     demographics_summary.Variable = demo_vars_analyzed';
     demographics_summary.Transition_26_r = demo_corr_26(:,1);
     demographics_summary.Transition_26_p = demo_corr_26(:,2);
+    demographics_summary.Transition_26_Uncorrected_significant = demo_corr_26(:,2) < 0.05;
     demographics_summary.Transition_26_p_FDR = adj_p_demo_26;
     demographics_summary.Transition_26_FDR_significant = h_fdr_demo_26;
     demographics_summary.Transition_26_n = demo_corr_26(:,3);
@@ -2456,6 +2465,7 @@ if ~isempty(demo_vars_analyzed)
     demographics_summary.Transition_26_CI_upper = demo_corr_26(:,5);
     demographics_summary.Transition_27_r = demo_corr_27(:,1);
     demographics_summary.Transition_27_p = demo_corr_27(:,2);
+    demographics_summary.Transition_27_Uncorrected_significant = demo_corr_27(:,2) < 0.05;
     demographics_summary.Transition_27_p_FDR = adj_p_demo_27;
     demographics_summary.Transition_27_FDR_significant = h_fdr_demo_27;
     demographics_summary.Transition_27_n = demo_corr_27(:,3);
@@ -2463,6 +2473,7 @@ if ~isempty(demo_vars_analyzed)
     demographics_summary.Transition_27_CI_upper = demo_corr_27(:,5);
     demographics_summary.bvFTD_r = demo_corr_bvftd(:,1);
     demographics_summary.bvFTD_p = demo_corr_bvftd(:,2);
+    demographics_summary.bvFTD_Uncorrected_significant = demo_corr_bvftd(:,2) < 0.05;
     demographics_summary.bvFTD_p_FDR = adj_p_demo_bvftd;
     demographics_summary.bvFTD_FDR_significant = h_fdr_demo_bvftd;
     demographics_summary.bvFTD_n = demo_corr_bvftd(:,3);
@@ -2580,16 +2591,19 @@ if ~isempty(cognitive_vars_found)
         cognitive_summary.Variable = cognitive_vars_found';
         cognitive_summary.Transition_26_r = cognitive_corr_26(:,1);
         cognitive_summary.Transition_26_p = cognitive_corr_26(:,2);
+        cognitive_summary.Transition_26_Uncorrected_significant = cognitive_corr_26(:,2) < 0.05;
         cognitive_summary.Transition_26_n = cognitive_corr_26(:,3);
         cognitive_summary.Transition_26_CI_lower = cognitive_corr_26(:,4);
         cognitive_summary.Transition_26_CI_upper = cognitive_corr_26(:,5);
         cognitive_summary.Transition_27_r = cognitive_corr_27(:,1);
         cognitive_summary.Transition_27_p = cognitive_corr_27(:,2);
+        cognitive_summary.Transition_27_Uncorrected_significant = cognitive_corr_27(:,2) < 0.05;
         cognitive_summary.Transition_27_n = cognitive_corr_27(:,3);
         cognitive_summary.Transition_27_CI_lower = cognitive_corr_27(:,4);
         cognitive_summary.Transition_27_CI_upper = cognitive_corr_27(:,5);
         cognitive_summary.bvFTD_r = cognitive_corr_bvftd(:,1);
         cognitive_summary.bvFTD_p = cognitive_corr_bvftd(:,2);
+        cognitive_summary.bvFTD_Uncorrected_significant = cognitive_corr_bvftd(:,2) < 0.05;
         cognitive_summary.bvFTD_n = cognitive_corr_bvftd(:,3);
         cognitive_summary.bvFTD_CI_lower = cognitive_corr_bvftd(:,4);
         cognitive_summary.bvFTD_CI_upper = cognitive_corr_bvftd(:,5);
@@ -3211,16 +3225,19 @@ if ~isempty(all_med_vars)
                               repmat({'Binary_0_1'}, length(available_med_binary), 1)];
     medication_summary.Transition_26_r = all_med_corr_26(:,1);
     medication_summary.Transition_26_p = all_med_corr_26(:,2);
+    medication_summary.Transition_26_Uncorrected_significant = all_med_corr_26(:,2) < 0.05;
     medication_summary.Transition_26_n = all_med_corr_26(:,3);
     medication_summary.Transition_26_CI_lower = all_med_corr_26(:,4);
     medication_summary.Transition_26_CI_upper = all_med_corr_26(:,5);
     medication_summary.Transition_27_r = all_med_corr_27(:,1);
     medication_summary.Transition_27_p = all_med_corr_27(:,2);
+    medication_summary.Transition_27_Uncorrected_significant = all_med_corr_27(:,2) < 0.05;
     medication_summary.Transition_27_n = all_med_corr_27(:,3);
     medication_summary.Transition_27_CI_lower = all_med_corr_27(:,4);
     medication_summary.Transition_27_CI_upper = all_med_corr_27(:,5);
     medication_summary.bvFTD_r = all_med_corr_bvftd(:,1);
     medication_summary.bvFTD_p = all_med_corr_bvftd(:,2);
+    medication_summary.bvFTD_Uncorrected_significant = all_med_corr_bvftd(:,2) < 0.05;
     medication_summary.bvFTD_n = all_med_corr_bvftd(:,3);
     medication_summary.bvFTD_CI_lower = all_med_corr_bvftd(:,4);
     medication_summary.bvFTD_CI_upper = all_med_corr_bvftd(:,5);
@@ -4210,7 +4227,7 @@ for ds_idx = 1:3
         end
 
         % Create figure
-        figure('Position', [100 100 900 700]);
+        fig = figure('Position', [100 100 900 700]);
         hold on;
 
         % Age range for predictions
@@ -4282,10 +4299,14 @@ for ds_idx = 1:3
         grid on;
         hold off;
 
-        % Save figure
-        saveas(gcf, [fig_path ds_filename '.png']);
-        saveas(gcf, [fig_path ds_filename '.fig']);
-        fprintf('  ✓ Saved: %s.png/.fig\n', ds_filename);
+        % Validate and save figure
+        if ishghandle(fig) && isvalid(fig)
+            saveas(fig, [fig_path ds_filename '.png']);
+            saveas(fig, [fig_path ds_filename '.fig']);
+            fprintf('  ✓ Saved: %s.png/.fig\n', ds_filename);
+        else
+            warning('Figure handle invalid, skipping save for %s', ds_filename);
+        end
 
     catch ME
         fprintf('  ERROR fitting model: %s\n', ME.message);
