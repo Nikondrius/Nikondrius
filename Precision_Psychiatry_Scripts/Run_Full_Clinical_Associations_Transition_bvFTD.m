@@ -1637,17 +1637,7 @@ if ~isempty(available_age_onset_vars)
         else
             age_onset_corr_26 = [age_onset_corr_26; NaN, NaN, sum(valid_idx), NaN, NaN];
         end
-        
-        valid_idx = ~isnan(var_data) & ~isnan(analysis_data.Transition_27);
-        if sum(valid_idx) >= 30
-            [r, p] = corr(var_data(valid_idx), analysis_data.Transition_27(valid_idx));
-            n = sum(valid_idx);
-            ci = ci_r(r, n);
-            age_onset_corr_27 = [age_onset_corr_27; r, p, n, ci(1), ci(2)];
-        else
-            age_onset_corr_27 = [age_onset_corr_27; NaN, NaN, sum(valid_idx), NaN, NaN];
-        end
-        
+
         valid_idx = ~isnan(var_data) & ~isnan(analysis_data.bvFTD);
         if sum(valid_idx) >= 30
             [r, p] = corr(var_data(valid_idx), analysis_data.bvFTD(valid_idx));
@@ -1661,7 +1651,6 @@ if ~isempty(available_age_onset_vars)
     fprintf('\n');
     
     results_4_3.age_onset_correlations_26 = age_onset_corr_26;
-    results_4_3.age_onset_correlations_27 = age_onset_corr_27;
     results_4_3.age_onset_correlations_bvftd = age_onset_corr_bvftd;
 end
 
@@ -1695,17 +1684,7 @@ if ~isempty(illness_duration_vars)
             else
                 duration_corr_26 = [duration_corr_26; NaN, NaN, sum(valid_idx), NaN, NaN];
             end
-            
-            valid_idx = ~isnan(var_data) & ~isnan(analysis_data.Transition_27);
-            if sum(valid_idx) >= 30
-                [r, p] = corr(var_data(valid_idx), analysis_data.Transition_27(valid_idx));
-                n = sum(valid_idx);
-                ci = ci_r(r, n);
-                duration_corr_27 = [duration_corr_27; r, p, n, ci(1), ci(2)];
-            else
-                duration_corr_27 = [duration_corr_27; NaN, NaN, sum(valid_idx), NaN, NaN];
-            end
-            
+
             valid_idx = ~isnan(var_data) & ~isnan(analysis_data.bvFTD);
             if sum(valid_idx) >= 30
                 [r, p] = corr(var_data(valid_idx), analysis_data.bvFTD(valid_idx));
@@ -1720,7 +1699,6 @@ if ~isempty(illness_duration_vars)
     fprintf('\n');
     
     results_4_3.illness_duration_correlations_26 = duration_corr_26;
-    results_4_3.illness_duration_correlations_27 = duration_corr_27;
     results_4_3.illness_duration_correlations_bvftd = duration_corr_bvftd;
 end
 
@@ -1761,17 +1739,7 @@ if ~isempty(available_recency_vars)
         else
             recency_corr_26 = [recency_corr_26; NaN, NaN, sum(valid_idx), NaN, NaN];
         end
-        
-        valid_idx = ~isnan(var_data) & ~isnan(analysis_data.Transition_27);
-        if sum(valid_idx) >= 30
-            [r, p] = corr(var_data(valid_idx), analysis_data.Transition_27(valid_idx));
-            n = sum(valid_idx);
-            ci = ci_r(r, n);
-            recency_corr_27 = [recency_corr_27; r, p, n, ci(1), ci(2)];
-        else
-            recency_corr_27 = [recency_corr_27; NaN, NaN, sum(valid_idx), NaN, NaN];
-        end
-        
+
         valid_idx = ~isnan(var_data) & ~isnan(analysis_data.bvFTD);
         if sum(valid_idx) >= 30
             [r, p] = corr(var_data(valid_idx), analysis_data.bvFTD(valid_idx));
@@ -1785,9 +1753,8 @@ if ~isempty(available_recency_vars)
     fprintf('\n');
     
     results_4_3.recency_correlations_26 = recency_corr_26;
-    results_4_3.recency_correlations_27 = recency_corr_27;
     results_4_3.recency_correlations_bvftd = recency_corr_bvftd;
-    
+
     % Save recency correlations summary
     recency_summary = table();
     recency_summary.Variable = available_recency_vars';
@@ -1797,12 +1764,6 @@ if ~isempty(available_recency_vars)
     recency_summary.Transition_26_n = recency_corr_26(:,3);
     recency_summary.Transition_26_CI_lower = recency_corr_26(:,4);
     recency_summary.Transition_26_CI_upper = recency_corr_26(:,5);
-    recency_summary.Transition_27_r = recency_corr_27(:,1);
-    recency_summary.Transition_27_p = recency_corr_27(:,2);
-    recency_summary.Transition_27_Uncorrected_significant = recency_corr_27(:,2) < 0.05;
-    recency_summary.Transition_27_n = recency_corr_27(:,3);
-    recency_summary.Transition_27_CI_lower = recency_corr_27(:,4);
-    recency_summary.Transition_27_CI_upper = recency_corr_27(:,5);
     recency_summary.bvFTD_r = recency_corr_bvftd(:,1);
     recency_summary.bvFTD_p = recency_corr_bvftd(:,2);
     recency_summary.bvFTD_Uncorrected_significant = recency_corr_bvftd(:,2) < 0.05;
@@ -1820,15 +1781,13 @@ if ~isempty(available_clinical_history_vars)
     fprintf('  ----------------------------------------\n');
     
     clinical_corr_26 = [];
-    clinical_corr_27 = [];
     clinical_corr_bvftd = [];
-    
+
     for i = 1:length(available_clinical_history_vars)
         var_data = analysis_data.(available_clinical_history_vars{i});
-        
+
         if ~isnumeric(var_data)
             clinical_corr_26 = [clinical_corr_26; NaN, NaN, 0, NaN, NaN];
-            clinical_corr_27 = [clinical_corr_27; NaN, NaN, 0, NaN, NaN];
             clinical_corr_bvftd = [clinical_corr_bvftd; NaN, NaN, 0, NaN, NaN];
             continue;
         end
@@ -1851,17 +1810,7 @@ if ~isempty(available_clinical_history_vars)
             fprintf('  %-25s     -       -   %5d (insufficient data)\n', ...
                 available_clinical_history_vars{i}, sum(valid_idx));
         end
-        
-        valid_idx = ~isnan(var_data) & ~isnan(analysis_data.Transition_27);
-        if sum(valid_idx) >= 30
-            [r, p] = corr(var_data(valid_idx), analysis_data.Transition_27(valid_idx));
-            n = sum(valid_idx);
-            ci = ci_r(r, n);
-            clinical_corr_27 = [clinical_corr_27; r, p, n, ci(1), ci(2)];
-        else
-            clinical_corr_27 = [clinical_corr_27; NaN, NaN, sum(valid_idx), NaN, NaN];
-        end
-        
+
         valid_idx = ~isnan(var_data) & ~isnan(analysis_data.bvFTD);
         if sum(valid_idx) >= 30
             [r, p] = corr(var_data(valid_idx), analysis_data.bvFTD(valid_idx));
