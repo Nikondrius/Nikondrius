@@ -12,7 +12,7 @@
 %  DECISION SCORE VERSIONS USED:
 %  - Transition: OOCV-26 (Version A - Dynamic Std) [PRIMARY]
 %  - Transition: OOCV-27 (Version B - Site-agnostic) [SENSITIVITY]
-%  - bvFTD: OOCV-6 (Dynamic Std)
+%  - bvFTD: OOCV-7 (Dynamic Std)
 %
 %  ANALYSES INCLUDED:
 %  - 4.1: Metabolic Subtypes & BMI
@@ -727,8 +727,8 @@ fprintf('---------------------------------------------------\n');
 fprintf('SECTION 4: LOADING bvFTD DECISION SCORES\n');
 fprintf('---------------------------------------------------\n\n');
 
-bvftd_file = [bvftd_path_base 'ClassModel_bvFTD-HC_A1_OOCV-6_Predictions_Cl_1bvFTD_vs_HC.csv'];
-fprintf('Loading bvFTD (OOCV-6): %s\n', bvftd_file);
+bvftd_file = [bvftd_path_base 'ClassModel_bvFTD-HC_A1_OOCV-7_Predictions_Cl_1bvFTD_vs_HC.csv'];
+fprintf('Loading bvFTD (OOCV-7): %s\n', bvftd_file);
 
 if ~exist(bvftd_file, 'file')
     error('ERROR: bvFTD file not found: %s', bvftd_file);
@@ -4319,7 +4319,7 @@ fprintf('  Demographics Analysis (%d variables)\n\n', length(demo_vars_analyzed)
 fprintf('DECISION SCORES USED:\n');
 fprintf('  - Transition-26 (OOCV-26)\n');
 fprintf('  - Transition-27 (OOCV-27)\n');
-fprintf('  - bvFTD (OOCV-6)\n\n');
+fprintf('  - bvFTD (OOCV-7)\n\n');
 
 fprintf('OUTPUT FILES CREATED:\n');
 fprintf('  Data Tables:\n');
