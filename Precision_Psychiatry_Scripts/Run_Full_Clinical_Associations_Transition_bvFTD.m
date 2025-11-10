@@ -4047,12 +4047,12 @@ fprintf('|  SECTION 10F: PARTIAL CORRELATIONS (FULL)       |\n');
 fprintf('---------------------------------------------------\n\n');
 
 fprintf('COMPUTING PARTIAL CORRELATIONS FOR ALL CLINICAL VARIABLES\n');
-fprintf('  Controlling for: Age, Sex, Site\n');
+fprintf('  Controlling for: Age, Sex, Site (whichever are available)\n');
 fprintf('  Rationale: Removes spurious associations due to demographic differences\n\n');
 
-% Check if control variables exist
+% Check if control variables exist (use actual variable names from dataset)
 has_age = ismember('Age', analysis_data.Properties.VariableNames);
-has_sex = ismember('Sex', analysis_data.Properties.VariableNames);
+has_sex = ismember('Sexe', analysis_data.Properties.VariableNames);  % Dataset uses 'Sexe' not 'Sex'
 has_site = ismember('site', analysis_data.Properties.VariableNames) || ...
            ismember('Site', analysis_data.Properties.VariableNames);
 
@@ -4066,14 +4066,39 @@ end
 
 fprintf('  Available control variables:\n');
 fprintf('    Age: %s\n', ternary(has_age, 'YES', 'NO'));
-fprintf('    Sex: %s\n', ternary(has_sex, 'YES', 'NO'));
+fprintf('    Sex (Sexe): %s\n', ternary(has_sex, 'YES', 'NO'));
 fprintf('    Site: %s\n\n', ternary(has_site, 'YES', 'NO'));
 
-if has_age && has_sex && has_site
-    fprintf('  Computing partial correlations for ALL %d clinical variables...\n\n', length(all_vars));
+% Build control matrix from available variables
+control_var_list = {};
+control_var_names = {};
 
-    % Prepare control matrix
-    control_vars = [analysis_data.Age, analysis_data.Sex, analysis_data.(site_var)];
+if has_age
+    control_var_list{end+1} = analysis_data.Age;
+    control_var_names{end+1} = 'Age';
+end
+
+if has_sex
+    control_var_list{end+1} = analysis_data.Sexe;  % Use 'Sexe' (French spelling)
+    control_var_names{end+1} = 'Sex';
+end
+
+if has_site
+    control_var_list{end+1} = analysis_data.(site_var);
+    control_var_names{end+1} = 'Site';
+end
+
+% Proceed if we have at least one control variable
+if ~isempty(control_var_list)
+    % Create control matrix
+    control_vars = [];
+    for i = 1:length(control_var_list)
+        control_vars = [control_vars, control_var_list{i}];
+    end
+
+    control_names_str = strjoin(control_var_names, ', ');
+    fprintf('  Computing partial correlations controlling for: %s\n', control_names_str);
+    fprintf('  Analyzing ALL %d clinical variables...\n\n', length(all_vars));
 
     % Create comprehensive partial correlation tables
     partial_corr_26 = [];
@@ -4194,8 +4219,8 @@ if has_age && has_sex && has_site
     end
 
 else
-    fprintf('  WARNING: Not all control variables (Age, Sex, Site) available\n');
-    fprintf('           Skipping partial correlation analysis\n\n');
+    fprintf('  WARNING: No control variables (Age, Sexe, Site) available\n');
+    fprintf('           Cannot compute partial correlations without controls\n\n');
 end
 
 fprintf('SECTION 10F COMPLETE: Partial correlation analysis (FULL) complete\n\n');
