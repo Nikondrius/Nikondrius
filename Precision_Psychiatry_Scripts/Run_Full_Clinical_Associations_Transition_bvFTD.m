@@ -4053,11 +4053,14 @@ fprintf('  Rationale: Removes spurious associations due to demographic differenc
 % Check if control variables exist (use actual variable names from dataset)
 has_age = ismember('Age', analysis_data.Properties.VariableNames);
 has_sex = ismember('Sexe', analysis_data.Properties.VariableNames);  % Dataset uses 'Sexe' not 'Sex'
-has_site = ismember('site', analysis_data.Properties.VariableNames) || ...
+has_site = ismember('ascanloc', analysis_data.Properties.VariableNames) || ...
+           ismember('site', analysis_data.Properties.VariableNames) || ...
            ismember('Site', analysis_data.Properties.VariableNames);
 
 if has_site
-    if ismember('site', analysis_data.Properties.VariableNames)
+    if ismember('ascanloc', analysis_data.Properties.VariableNames)
+        site_var = 'ascanloc';  % Scan location variable
+    elseif ismember('site', analysis_data.Properties.VariableNames)
         site_var = 'site';
     else
         site_var = 'Site';
@@ -4067,7 +4070,7 @@ end
 fprintf('  Available control variables:\n');
 fprintf('    Age: %s\n', ternary(has_age, 'YES', 'NO'));
 fprintf('    Sex (Sexe): %s\n', ternary(has_sex, 'YES', 'NO'));
-fprintf('    Site: %s\n\n', ternary(has_site, 'YES', 'NO'));
+fprintf('    Site (ascanloc): %s\n\n', ternary(has_site, 'YES', 'NO'));
 
 % Build control matrix from available variables
 control_var_list = {};
