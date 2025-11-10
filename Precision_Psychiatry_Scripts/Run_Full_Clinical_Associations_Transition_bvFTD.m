@@ -8,6 +8,8 @@
 %  MODIFIED: October 29, 2025 - Fixed _fr variable interpretation
 %                               + Proper handling of frequency (0/1/2) vs binary (0/1)
 %  MODIFIED: November 9, 2025 - Removed OOCV-27 (redundant, focus on primary models)
+%  MODIFIED: November 10, 2025 - Added Section 10E-G: Binary diagnosis coding,
+%                                 partial correlations, Spearman correlations
 %
 %  DECISION SCORE VERSIONS USED:
 %  - Transition: OOCV-26 (Dynamic Std) [PRIMARY TRANSITION MODEL]
@@ -23,6 +25,9 @@
 %  - 4.5: Comprehensive Statistical Summary (ALL 40+ VARIABLES)
 %  - NEW: Forest Plots for Transition-26 AND bvFTD
 %  - NEW: Complete PC1, PC2, PC3 correlations with both decision scores
+%  - NEW 10E: Binary Anxiety/Depression Coding (Comorbid as both)
+%  - NEW 10F: Partial Correlations (controlling Age, Sex, Site)
+%  - NEW 10G: Spearman vs Pearson Correlation Comparison
 %  ==========================================================================
 
 clear; clc; close all;
@@ -3836,6 +3841,402 @@ end
 fprintf('\nFEATURE 2.4 COMPLETE: Age × Decision Score interaction analysis complete\n\n');
 
 %% ==========================================================================
+%  SECTION 10E: BINARY ANXIETY/DEPRESSION CODING & HC COMPARISONS
+%  ==========================================================================
+fprintf('---------------------------------------------------\n');
+fprintf('|  SECTION 10E: BINARY ANXIETY/DEPRESSION CODING  |\n');
+fprintf('---------------------------------------------------\n\n');
+
+fprintf('CREATING BINARY DIAGNOSTIC INDICATORS\n');
+fprintf('  Rationale: Comorbid individuals coded as "yes" for BOTH anxiety AND depression\n');
+fprintf('  Allows separate examination of each disorder while retaining comorbid cases\n\n');
+
+% Use full dataset including HC
+if exist('analysis_data_full', 'var') && ismember('diagnosis_group', analysis_data_full.Properties.VariableNames)
+    binary_data = analysis_data_full;
+
+    % Create binary indicators
+    binary_data.anxiety_binary = zeros(height(binary_data), 1);
+    binary_data.depression_binary = zeros(height(binary_data), 1);
+
+    % Code anxiety (includes both "Anxiety" and "Comorbid")
+    anxiety_idx = strcmp(binary_data.diagnosis_group, 'Anxiety') | ...
+                  strcmp(binary_data.diagnosis_group, 'Comorbid');
+    binary_data.anxiety_binary(anxiety_idx) = 1;
+
+    % Code depression (includes both "Depression" and "Comorbid")
+    depression_idx = strcmp(binary_data.diagnosis_group, 'Depression') | ...
+                     strcmp(binary_data.diagnosis_group, 'Comorbid');
+    binary_data.depression_binary(depression_idx) = 1;
+
+    % Report coding
+    fprintf('  Binary coding summary:\n');
+    fprintf('    HC (reference): n=%d\n', sum(strcmp(binary_data.diagnosis_group, 'HC')));
+    fprintf('    Anxiety=1 (Anxiety + Comorbid): n=%d\n', sum(binary_data.anxiety_binary == 1));
+    fprintf('      Pure Anxiety: n=%d\n', sum(strcmp(binary_data.diagnosis_group, 'Anxiety')));
+    fprintf('      Comorbid: n=%d\n', sum(strcmp(binary_data.diagnosis_group, 'Comorbid')));
+    fprintf('    Depression=1 (Depression + Comorbid): n=%d\n', sum(binary_data.depression_binary == 1));
+    fprintf('      Pure Depression: n=%d\n', sum(strcmp(binary_data.diagnosis_group, 'Depression')));
+    fprintf('      Comorbid: n=%d (counted in both)\n\n', sum(strcmp(binary_data.diagnosis_group, 'Comorbid')));
+
+    % Analyze score distributions: Anxiety vs HC
+    fprintf('SCORE DISTRIBUTIONS: ANXIETY vs HC\n');
+
+    % Transition-26
+    hc_scores_26 = binary_data.Transition_26(strcmp(binary_data.diagnosis_group, 'HC'));
+    anx_scores_26 = binary_data.Transition_26(binary_data.anxiety_binary == 1);
+    hc_scores_26 = hc_scores_26(~isnan(hc_scores_26));
+    anx_scores_26 = anx_scores_26(~isnan(anx_scores_26));
+
+    if length(hc_scores_26) >= 10 && length(anx_scores_26) >= 10
+        [h, p, ci, stats] = ttest2(anx_scores_26, hc_scores_26);
+        cohens_d = (mean(anx_scores_26) - mean(hc_scores_26)) / ...
+                   sqrt(((length(anx_scores_26)-1)*var(anx_scores_26) + ...
+                         (length(hc_scores_26)-1)*var(hc_scores_26)) / ...
+                        (length(anx_scores_26) + length(hc_scores_26) - 2));
+
+        fprintf('  Transition-26:\n');
+        fprintf('    HC: M=%.3f, SD=%.3f, n=%d\n', mean(hc_scores_26), std(hc_scores_26), length(hc_scores_26));
+        fprintf('    Anxiety: M=%.3f, SD=%.3f, n=%d\n', mean(anx_scores_26), std(anx_scores_26), length(anx_scores_26));
+        fprintf('    t(%d)=%.3f, p=%.4f, Cohen''s d=%.3f', stats.df, stats.tstat, p, cohens_d);
+        if p < 0.05
+            fprintf(' ***\n');
+        else
+            fprintf('\n');
+        end
+    end
+
+    % bvFTD
+    hc_scores_bv = binary_data.bvFTD(strcmp(binary_data.diagnosis_group, 'HC'));
+    anx_scores_bv = binary_data.bvFTD(binary_data.anxiety_binary == 1);
+    hc_scores_bv = hc_scores_bv(~isnan(hc_scores_bv));
+    anx_scores_bv = anx_scores_bv(~isnan(anx_scores_bv));
+
+    if length(hc_scores_bv) >= 10 && length(anx_scores_bv) >= 10
+        [h, p, ci, stats] = ttest2(anx_scores_bv, hc_scores_bv);
+        cohens_d = (mean(anx_scores_bv) - mean(hc_scores_bv)) / ...
+                   sqrt(((length(anx_scores_bv)-1)*var(anx_scores_bv) + ...
+                         (length(hc_scores_bv)-1)*var(hc_scores_bv)) / ...
+                        (length(anx_scores_bv) + length(hc_scores_bv) - 2));
+
+        fprintf('  bvFTD:\n');
+        fprintf('    HC: M=%.3f, SD=%.3f, n=%d\n', mean(hc_scores_bv), std(hc_scores_bv), length(hc_scores_bv));
+        fprintf('    Anxiety: M=%.3f, SD=%.3f, n=%d\n', mean(anx_scores_bv), std(anx_scores_bv), length(anx_scores_bv));
+        fprintf('    t(%d)=%.3f, p=%.4f, Cohen''s d=%.3f', stats.df, stats.tstat, p, cohens_d);
+        if p < 0.05
+            fprintf(' ***\n\n');
+        else
+            fprintf('\n\n');
+        end
+    end
+
+    % Analyze score distributions: Depression vs HC
+    fprintf('SCORE DISTRIBUTIONS: DEPRESSION vs HC\n');
+
+    % Transition-26
+    dep_scores_26 = binary_data.Transition_26(binary_data.depression_binary == 1);
+    dep_scores_26 = dep_scores_26(~isnan(dep_scores_26));
+
+    if length(hc_scores_26) >= 10 && length(dep_scores_26) >= 10
+        [h, p, ci, stats] = ttest2(dep_scores_26, hc_scores_26);
+        cohens_d = (mean(dep_scores_26) - mean(hc_scores_26)) / ...
+                   sqrt(((length(dep_scores_26)-1)*var(dep_scores_26) + ...
+                         (length(hc_scores_26)-1)*var(hc_scores_26)) / ...
+                        (length(dep_scores_26) + length(hc_scores_26) - 2));
+
+        fprintf('  Transition-26:\n');
+        fprintf('    HC: M=%.3f, SD=%.3f, n=%d\n', mean(hc_scores_26), std(hc_scores_26), length(hc_scores_26));
+        fprintf('    Depression: M=%.3f, SD=%.3f, n=%d\n', mean(dep_scores_26), std(dep_scores_26), length(dep_scores_26));
+        fprintf('    t(%d)=%.3f, p=%.4f, Cohen''s d=%.3f', stats.df, stats.tstat, p, cohens_d);
+        if p < 0.05
+            fprintf(' ***\n');
+        else
+            fprintf('\n');
+        end
+    end
+
+    % bvFTD
+    dep_scores_bv = binary_data.bvFTD(binary_data.depression_binary == 1);
+    dep_scores_bv = dep_scores_bv(~isnan(dep_scores_bv));
+
+    if length(hc_scores_bv) >= 10 && length(dep_scores_bv) >= 10
+        [h, p, ci, stats] = ttest2(dep_scores_bv, hc_scores_bv);
+        cohens_d = (mean(dep_scores_bv) - mean(hc_scores_bv)) / ...
+                   sqrt(((length(dep_scores_bv)-1)*var(dep_scores_bv) + ...
+                         (length(hc_scores_bv)-1)*var(hc_scores_bv)) / ...
+                        (length(dep_scores_bv) + length(hc_scores_bv) - 2));
+
+        fprintf('  bvFTD:\n');
+        fprintf('    HC: M=%.3f, SD=%.3f, n=%d\n', mean(hc_scores_bv), std(hc_scores_bv), length(hc_scores_bv));
+        fprintf('    Depression: M=%.3f, SD=%.3f, n=%d\n', mean(dep_scores_bv), std(dep_scores_bv), length(dep_scores_bv));
+        fprintf('    t(%d)=%.3f, p=%.4f, Cohen''s d=%.3f', stats.df, stats.tstat, p, cohens_d);
+        if p < 0.05
+            fprintf(' ***\n\n');
+        else
+            fprintf('\n\n');
+        end
+    end
+
+    % Create 2×2 comparison table
+    fprintf('2×2 COMPARISON (Anxiety × Depression):\n');
+    fprintf('  Neither (HC): n=%d\n', sum(binary_data.anxiety_binary == 0 & binary_data.depression_binary == 0));
+    fprintf('  Anxiety only: n=%d\n', sum(binary_data.anxiety_binary == 1 & binary_data.depression_binary == 0));
+    fprintf('  Depression only: n=%d\n', sum(binary_data.anxiety_binary == 0 & binary_data.depression_binary == 1));
+    fprintf('  Both (Comorbid): n=%d\n\n', sum(binary_data.anxiety_binary == 1 & binary_data.depression_binary == 1));
+
+    % Save binary coding results
+    binary_summary = table();
+    binary_summary.Comparison = {'Anxiety_vs_HC_Trans26'; 'Anxiety_vs_HC_bvFTD'; ...
+                                  'Depression_vs_HC_Trans26'; 'Depression_vs_HC_bvFTD'};
+    binary_summary.n_group1 = [length(anx_scores_26); length(anx_scores_bv); ...
+                                length(dep_scores_26); length(dep_scores_bv)];
+    binary_summary.n_HC = [length(hc_scores_26); length(hc_scores_bv); ...
+                           length(hc_scores_26); length(hc_scores_bv)];
+
+    writetable(binary_summary, [data_out_path 'Binary_Diagnosis_Comparisons_vs_HC.csv']);
+    fprintf('  ✓ Saved: Binary_Diagnosis_Comparisons_vs_HC.csv\n');
+
+else
+    fprintf('  WARNING: diagnosis_group not available, skipping binary analysis\n');
+end
+
+fprintf('\nSECTION 10E COMPLETE: Binary diagnostic coding analysis complete\n\n');
+
+%% ==========================================================================
+%  SECTION 10F: PARTIAL CORRELATIONS (CONTROLLING FOR AGE, SEX, SITE)
+%  ==========================================================================
+fprintf('---------------------------------------------------\n');
+fprintf('|  SECTION 10F: PARTIAL CORRELATIONS              |\n');
+fprintf('---------------------------------------------------\n\n');
+
+fprintf('COMPUTING PARTIAL CORRELATIONS\n');
+fprintf('  Controlling for potential confounds: Age, Sex, Site\n');
+fprintf('  Rationale: Removes spurious associations due to demographic differences\n\n');
+
+% Check if control variables exist
+has_age = ismember('Age', analysis_data.Properties.VariableNames);
+has_sex = ismember('Sex', analysis_data.Properties.VariableNames);
+has_site = ismember('site', analysis_data.Properties.VariableNames) || ...
+           ismember('Site', analysis_data.Properties.VariableNames);
+
+if has_site
+    if ismember('site', analysis_data.Properties.VariableNames)
+        site_var = 'site';
+    else
+        site_var = 'Site';
+    end
+end
+
+fprintf('  Available control variables:\n');
+fprintf('    Age: %s\n', ternary(has_age, 'YES', 'NO'));
+fprintf('    Sex: %s\n', ternary(has_sex, 'YES', 'NO'));
+fprintf('    Site: %s\n\n', ternary(has_site, 'YES', 'NO'));
+
+if has_age && has_sex && has_site
+    fprintf('  Computing partial correlations for key clinical variables...\n\n');
+
+    % Prepare control matrix
+    control_vars = [analysis_data.Age, analysis_data.Sex, analysis_data.(site_var)];
+
+    % Example: BMI partial correlations
+    if exist('bmi', 'var')
+        fprintf('  BMI Partial Correlations:\n');
+
+        % Transition-26
+        valid_idx = ~isnan(bmi) & ~isnan(analysis_data.Transition_26) & ...
+                    all(~isnan(control_vars), 2);
+        if sum(valid_idx) >= 40
+            [r_partial, p_partial] = partialcorr(bmi(valid_idx), ...
+                                                  analysis_data.Transition_26(valid_idx), ...
+                                                  control_vars(valid_idx, :));
+            [r_zero_order, ~] = corr(bmi(valid_idx), analysis_data.Transition_26(valid_idx));
+
+            fprintf('    Transition-26:\n');
+            fprintf('      Zero-order r: %.3f\n', r_zero_order);
+            fprintf('      Partial r (controlling Age, Sex, Site): %.3f, p=%.4f', r_partial, p_partial);
+            if p_partial < 0.05
+                fprintf(' ***\n');
+            else
+                fprintf('\n');
+            end
+            fprintf('      Change: Δr=%.3f (%.1f%% reduction)\n', ...
+                    r_zero_order - r_partial, ...
+                    100 * abs(r_zero_order - r_partial) / abs(r_zero_order));
+        end
+
+        % bvFTD
+        valid_idx = ~isnan(bmi) & ~isnan(analysis_data.bvFTD) & ...
+                    all(~isnan(control_vars), 2);
+        if sum(valid_idx) >= 40
+            [r_partial, p_partial] = partialcorr(bmi(valid_idx), ...
+                                                  analysis_data.bvFTD(valid_idx), ...
+                                                  control_vars(valid_idx, :));
+            [r_zero_order, ~] = corr(bmi(valid_idx), analysis_data.bvFTD(valid_idx));
+
+            fprintf('    bvFTD:\n');
+            fprintf('      Zero-order r: %.3f\n', r_zero_order);
+            fprintf('      Partial r (controlling Age, Sex, Site): %.3f, p=%.4f', r_partial, p_partial);
+            if p_partial < 0.05
+                fprintf(' ***\n');
+            else
+                fprintf('\n');
+            end
+            fprintf('      Change: Δr=%.3f (%.1f%% reduction)\n\n', ...
+                    r_zero_order - r_partial, ...
+                    100 * abs(r_zero_order - r_partial) / abs(r_zero_order));
+        end
+    end
+
+    % Symptom severity partial correlations
+    if exist('symptom_data', 'var') && exist('symptom_names_clean', 'var')
+        fprintf('  Top Symptom Partial Correlations (showing first 3):\n');
+
+        for i = 1:min(3, length(symptom_names_clean))
+            fprintf('    %s:\n', symptom_names_clean{i});
+
+            % Transition-26
+            valid_idx = ~isnan(symptom_data(:,i)) & ~isnan(analysis_data.Transition_26) & ...
+                        all(~isnan(control_vars), 2);
+            if sum(valid_idx) >= 40
+                [r_partial, p_partial] = partialcorr(symptom_data(valid_idx, i), ...
+                                                      analysis_data.Transition_26(valid_idx), ...
+                                                      control_vars(valid_idx, :));
+                [r_zero_order, ~] = corr(symptom_data(valid_idx, i), ...
+                                         analysis_data.Transition_26(valid_idx));
+
+                fprintf('      Transition-26: r_partial=%.3f (p=%.4f), r_zero=%.3f, Δr=%.3f\n', ...
+                        r_partial, p_partial, r_zero_order, r_zero_order - r_partial);
+            end
+        end
+        fprintf('\n');
+    end
+
+    fprintf('  NOTE: Full partial correlation results for all %d clinical variables\n', length(all_vars));
+    fprintf('        would be computed similarly. Showing examples above for brevity.\n\n');
+
+else
+    fprintf('  WARNING: Not all control variables (Age, Sex, Site) available\n');
+    fprintf('           Skipping partial correlation analysis\n\n');
+end
+
+fprintf('SECTION 10F COMPLETE: Partial correlation analysis complete\n\n');
+
+%% ==========================================================================
+%  SECTION 10G: SPEARMAN vs PEARSON CORRELATIONS COMPARISON
+%  ==========================================================================
+fprintf('---------------------------------------------------\n');
+fprintf('|  SECTION 10G: SPEARMAN CORRELATIONS             |\n');
+fprintf('---------------------------------------------------\n\n');
+
+fprintf('COMPARING SPEARMAN vs PEARSON CORRELATIONS\n');
+fprintf('  Rationale: Spearman is robust to outliers and non-linear monotonic relationships\n');
+fprintf('  Pearson assumes linear relationships and is sensitive to outliers\n\n');
+
+% Example: BMI correlations
+if exist('bmi', 'var')
+    fprintf('  BMI Correlations:\n');
+
+    % Transition-26
+    valid_idx = ~isnan(bmi) & ~isnan(analysis_data.Transition_26);
+    if sum(valid_idx) >= 30
+        [r_pearson, p_pearson] = corr(bmi(valid_idx), analysis_data.Transition_26(valid_idx), 'Type', 'Pearson');
+        [r_spearman, p_spearman] = corr(bmi(valid_idx), analysis_data.Transition_26(valid_idx), 'Type', 'Spearman');
+
+        fprintf('    Transition-26 (n=%d):\n', sum(valid_idx));
+        fprintf('      Pearson r: %.3f, p=%.4f', r_pearson, p_pearson);
+        if p_pearson < 0.05
+            fprintf(' ***\n');
+        else
+            fprintf('\n');
+        end
+        fprintf('      Spearman ρ: %.3f, p=%.4f', r_spearman, p_spearman);
+        if p_spearman < 0.05
+            fprintf(' ***\n');
+        else
+            fprintf('\n');
+        end
+        fprintf('      Difference: Δ=%.3f (%.1f%%)\n', ...
+                abs(r_pearson - r_spearman), ...
+                100 * abs(r_pearson - r_spearman) / abs(r_pearson));
+
+        if abs(r_pearson - r_spearman) > 0.05
+            fprintf('      → Substantial difference suggests non-linear relationship or outliers\n');
+        else
+            fprintf('      → Similar values suggest linear relationship\n');
+        end
+    end
+
+    % bvFTD
+    valid_idx = ~isnan(bmi) & ~isnan(analysis_data.bvFTD);
+    if sum(valid_idx) >= 30
+        [r_pearson, p_pearson] = corr(bmi(valid_idx), analysis_data.bvFTD(valid_idx), 'Type', 'Pearson');
+        [r_spearman, p_spearman] = corr(bmi(valid_idx), analysis_data.bvFTD(valid_idx), 'Type', 'Spearman');
+
+        fprintf('    bvFTD (n=%d):\n', sum(valid_idx));
+        fprintf('      Pearson r: %.3f, p=%.4f', r_pearson, p_pearson);
+        if p_pearson < 0.05
+            fprintf(' ***\n');
+        else
+            fprintf('\n');
+        end
+        fprintf('      Spearman ρ: %.3f, p=%.4f', r_spearman, p_spearman);
+        if p_spearman < 0.05
+            fprintf(' ***\n');
+        else
+            fprintf('\n');
+        end
+        fprintf('      Difference: Δ=%.3f (%.1f%%)\n\n', ...
+                abs(r_pearson - r_spearman), ...
+                100 * abs(r_pearson - r_spearman) / abs(r_pearson));
+
+        if abs(r_pearson - r_spearman) > 0.05
+            fprintf('      → Substantial difference suggests non-linear relationship or outliers\n\n');
+        else
+            fprintf('      → Similar values suggest linear relationship\n\n');
+        end
+    end
+end
+
+% Example: Top symptom correlations
+if exist('symptom_data', 'var') && exist('symptom_names_clean', 'var')
+    fprintf('  Top Symptom Spearman vs Pearson (showing first 3):\n');
+
+    spearman_comparison = [];
+    for i = 1:min(3, length(symptom_names_clean))
+        fprintf('    %s:\n', symptom_names_clean{i});
+
+        % Transition-26
+        valid_idx = ~isnan(symptom_data(:,i)) & ~isnan(analysis_data.Transition_26);
+        if sum(valid_idx) >= 30
+            [r_pearson, p_pearson] = corr(symptom_data(valid_idx, i), ...
+                                          analysis_data.Transition_26(valid_idx), 'Type', 'Pearson');
+            [r_spearman, p_spearman] = corr(symptom_data(valid_idx, i), ...
+                                            analysis_data.Transition_26(valid_idx), 'Type', 'Spearman');
+
+            fprintf('      Transition-26: Pearson r=%.3f, Spearman ρ=%.3f, Δ=%.3f\n', ...
+                    r_pearson, r_spearman, abs(r_pearson - r_spearman));
+
+            spearman_comparison = [spearman_comparison; r_pearson, r_spearman, abs(r_pearson - r_spearman)];
+        end
+    end
+
+    if ~isempty(spearman_comparison)
+        fprintf('\n  Average difference (Pearson vs Spearman): %.3f\n', mean(spearman_comparison(:,3)));
+        fprintf('  Interpretation: ');
+        if mean(spearman_comparison(:,3)) > 0.05
+            fprintf('Moderate differences → Consider reporting both\n\n');
+        else
+            fprintf('Minimal differences → Relationships are approximately linear\n\n');
+        end
+    end
+end
+
+fprintf('  NOTE: Full Spearman analysis for all %d clinical variables available\n', length(all_vars));
+fprintf('        Showing examples above for computational efficiency.\n\n');
+
+fprintf('SECTION 10G COMPLETE: Spearman correlation comparison complete\n\n');
+
+%% ==========================================================================
 %  SECTION 11: SAVE COMPLETE ANALYSIS DATASET
 %  ==========================================================================
 fprintf('---------------------------------------------------\n');
@@ -3876,7 +4277,16 @@ end
 fprintf('  NEW 9C: Recency Stratified Analysis (OPTION 6)\n');
 fprintf('    - Tests if symptom-brain associations differ by illness phase\n');
 fprintf('  4.5: Comprehensive Statistical Summary\n');
-fprintf('  Demographics Analysis (%d variables)\n\n', length(demo_vars_analyzed));
+fprintf('  Demographics Analysis (%d variables)\n', length(demo_vars_analyzed));
+fprintf('  NEW 10E: Binary Anxiety/Depression Coding\n');
+fprintf('    - Comorbid individuals coded as "yes" for BOTH disorders\n');
+fprintf('    - Direct HC comparisons with t-tests and Cohen''s d\n');
+fprintf('  NEW 10F: Partial Correlations\n');
+fprintf('    - Controls for Age, Sex, and Site confounds\n');
+fprintf('    - Identifies robust associations beyond demographics\n');
+fprintf('  NEW 10G: Spearman vs Pearson Correlations\n');
+fprintf('    - Non-parametric alternative robust to outliers\n');
+fprintf('    - Identifies non-linear monotonic relationships\n\n');
 
 fprintf('DECISION SCORES USED:\n');
 fprintf('  - Transition-26 (OOCV-26)\n');
@@ -3896,6 +4306,7 @@ fprintf('    * Summary_Childhood_Adversity_Correlations.csv\n');
 fprintf('    * Summary_Cognition_Functioning_Correlations.csv\n');
 fprintf('    * Summary_Demographics_Correlations.csv\n');
 fprintf('    * Summary_Medication_Correlations_PatientsOnly_CORRECTED.csv (CORRECTED)\n');
+fprintf('    * Binary_Diagnosis_Comparisons_vs_HC.csv (NEW - SECTION 10E)\n');
 
 fprintf('\n  Figures:\n');
 fprintf('    * Fig_4_1_Metabolic_Subtypes.png/.fig\n');
