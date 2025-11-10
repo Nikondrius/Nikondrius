@@ -4082,12 +4082,15 @@ if has_age && has_sex && has_site
     % Iterate through all clinical variables
     for v = 1:length(all_vars)
         var_name = all_vars{v};
-        
+
         % Try to find the variable in analysis_data
         if ismember(var_name, analysis_data.Properties.VariableNames)
             var_data = analysis_data.(var_name);
         else
-            continue; % Skip if variable not found
+            % Variable not found - append NaN rows to maintain alignment
+            partial_corr_26 = [partial_corr_26; NaN, NaN, NaN, NaN, NaN, 0];
+            partial_corr_bvftd = [partial_corr_bvftd; NaN, NaN, NaN, NaN, NaN, 0];
+            continue;
         end
 
         % =================================================================
@@ -4215,12 +4218,15 @@ spearman_comp_bvftd = [];
 % Iterate through all clinical variables
 for v = 1:length(all_vars)
     var_name = all_vars{v};
-    
+
     % Try to find the variable in analysis_data
     if ismember(var_name, analysis_data.Properties.VariableNames)
         var_data = analysis_data.(var_name);
     else
-        continue; % Skip if variable not found
+        % Variable not found - append NaN rows to maintain alignment
+        spearman_comp_26 = [spearman_comp_26; NaN, NaN, NaN, NaN, NaN, 0];
+        spearman_comp_bvftd = [spearman_comp_bvftd; NaN, NaN, NaN, NaN, NaN, 0];
+        continue;
     end
 
     % =================================================================
