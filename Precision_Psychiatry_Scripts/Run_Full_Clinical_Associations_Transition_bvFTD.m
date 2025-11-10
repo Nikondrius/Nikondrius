@@ -3974,7 +3974,7 @@ if exist('analysis_data_full', 'var') && ismember('diagnosis_group', analysis_da
 
     % Apply FDR correction across all binary comparisons
     if ~isempty(all_binary_pvals)
-        [h_fdr_binary, crit_p, adj_ci, adj_p_binary] = fdr_bh(all_binary_pvals, 0.05, 'pdep', 'yes');
+        [h_fdr_binary, crit_p, adj_p_binary] = fdr_bh(all_binary_pvals, 0.05);
 
         fprintf('  FDR CORRECTION APPLIED: %d comparisons, q=0.05\n\n', length(all_binary_pvals));
 
