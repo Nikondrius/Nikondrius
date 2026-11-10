@@ -89,7 +89,7 @@ body.is-live .tabs{display:none}
 .chip[aria-pressed="true"]{background:var(--ink);color:var(--on-light);border-color:var(--ink)}
 .chip.txt{font:700 15px/1.1 var(--body)}
 .chips.grid5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
-.chips.grid5 .chip{min-width:0}
+.chips.grid5 .chip{min-width:0;justify-content:center;text-align:center;padding:0 6px}
 .chips.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
 .chips.grid2 .chip{min-width:0;padding:6px 8px}
 .chips.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -476,8 +476,8 @@ const VOICE_NAMES = {heart: 'Heart', michael: 'Michael', phone: 'Phone voice'};
 const DEFAULTS = {
   hrMax: 190, hrRest: 60, incline: 15,
   speed4x4: 6.0, warmSpeed: 4.2, recSpeed: 3.5,
-  z2Speed: 4.2, z2Minutes: 90, vestKg: 0, checkEvery: 10, z2Week: 180,
-  weight: 75, sound: true, voice: true, vibrate: true, voiceName: 'heart', z2Quiet: false, btName: '',
+  z2Speed: 4.2, z2Minutes: 90, vestKg: 0, walkMax: 6.5, checkEvery: 10, z2Week: 180,
+  weight: 75, sound: true, voice: true, vibrate: true, voiceName: 'heart', z2Quiet: false, autoProgress: true, btName: '',
   plan: ['kraft', '4x4', 'kraft', '4x4', 'kraft', 'z2', 'z2'],
   updatedAt: 0
 };
@@ -495,11 +495,12 @@ function sanitizeSettings(o) {
   s.recSpeed = r1(n('recSpeed', 1, 10));
   s.z2Speed = r1(n('z2Speed', 1, 12));
   s.z2Minutes = n('z2Minutes', 20, 180, 5);
-  s.vestKg = n('vestKg', 0, 30, 2.5);
+  s.vestKg = n('vestKg', 0, 30, 0.5);
+  s.walkMax = r1(n('walkMax', 4, 9));
   s.checkEvery = n('checkEvery', 5, 30, 5);
   s.z2Week = n('z2Week', 0, 900, 10);
   s.weight = n('weight', 40, 200, 0.5);
-  for (const k of ['sound', 'voice', 'vibrate', 'z2Quiet']) s[k] = typeof o[k] === 'boolean' ? o[k] : d[k];
+  for (const k of ['sound', 'voice', 'vibrate', 'z2Quiet', 'autoProgress']) s[k] = typeof o[k] === 'boolean' ? o[k] : d[k];
   s.voiceName = ['heart', 'michael', 'phone'].includes(o.voiceName) ? o.voiceName : d.voiceName;
   s.btName = typeof o.btName === 'string' ? o.btName.slice(0, 60) : '';
   s.plan = Array.isArray(o.plan) && o.plan.length === 7 && o.plan.every(p => PLAN_TYPES.includes(p)) ? o.plan.slice() : d.plan.slice();
@@ -522,6 +523,26 @@ function target4x4(Z, rec) {
   const lo = rec === 'gelb' ? Z.yLo : Z.endLo, hi = rec === 'gelb' ? Z.yHi : Z.endHi;
   return {lo, hi, m2Max: hi - 3, m2Min: lo - 12, m3Min: lo - 2, early: hi + 1, danger: Z.max - 3};
 }
+
+/* ================= weight vest ================= */
+/* Walking cost above standing, in W per kg carried: the LCDA walking equation (Looney et al. 2019) without its 1.44 W/kg standing term.
+   The vest adds to the mass you lift up the incline with every step, so this part scales with body plus vest. Standing stays with your body. */
+function walkCost(kmh, grade) {
+  const v = Math.max(0, kmh) / 3.6, G = clamp(Number(grade) || 0, 0, 40);
+  return 1.94 * Math.pow(v, 0.43) + 0.24 * Math.pow(v, 4) + 0.34 * v * G * (1 - Math.pow(1.05, 1 - Math.pow(1.1, G + 32)));
+}
+function speedForCost(cost, grade) { let lo = 0, hi = 16; for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; if (walkCost(m, grade) < cost) lo = m; else hi = m; } return (lo + hi) / 2; }
+/* the speed with kg on your back that costs the same as kmh without it, and the way back */
+function withVest(kmh, kg, grade, body) { return !kg || !isNum(kmh) ? kmh : speedForCost(walkCost(kmh, grade) * body / (body + kg), grade); }
+function withoutVest(kmh, kg, grade, body) { return !kg || !isNum(kmh) ? kmh : speedForCost(walkCost(kmh, grade) * (body + kg) / body, grade); }
+function vestOn(kmh, kg, st = Store.settings, grade = st.incline) { return isNum(kmh) ? r1(withVest(kmh, kg, grade, st.weight)) : kmh; }
+function vestOff(kmh, kg, st = Store.settings, grade = st.incline) { return isNum(kmh) ? r1(withoutVest(kmh, kg, grade, st.weight)) : kmh; }
+/* lightest vest in whole kg, from fromKg up, that brings the walking speed for an unloaded pace down to cap */
+function vestFor(bare, cap, fromKg, st = Store.settings, grade = st.incline) {
+  for (let kg = Math.max(0, Math.ceil(fromKg || 0)); kg <= 30; kg++) if (vestOn(bare, kg, st, grade) <= cap) return kg;
+  return null;
+}
+function kgTxt(v) { return num(v, Number(v) % 1 ? 1 : 0); }
 
 /* ================= protocol builders ================= */
 function build4x4(st, o) {
@@ -645,6 +666,14 @@ function score4x4(rec) {
   return sc;
 }
 function next4x4(rec) {
+  const res = next4x4raw(rec);
+  if (!res || !isNum(res.speed)) return res;
+  const cap = Store.settings.walkMax, ivs = rec.intervals, start = isNum(ivs[0] && ivs[0].startSpeed) ? ivs[0].startSpeed : rec.startSpeed;
+  if (res.speed <= cap || !isNum(start) || res.speed <= start) return res;
+  const sp = r1(Math.max(start, cap)), first = res.text.split('. ')[0];
+  return {speed: sp, text: sp > start ? `${first}. Next time starts at ${num(sp)}, your top walking speed.` : `${first}. You are at your top walking speed of ${num(cap)}, so the start stays here.`};
+}
+function next4x4raw(rec) {
   const {lo, hi} = rec.target, ivs = rec.intervals;
   const start = isNum(ivs[0] && ivs[0].startSpeed) ? ivs[0].startSpeed : rec.startSpeed;
   if (!isNum(start)) return null;
@@ -660,19 +689,40 @@ function next4x4(rec) {
     const sp = e.length ? r1(e.reduce((a, b) => a + b, 0) / e.length) : r1(start + 0.3);
     return {speed: sp, text: 'Interval 1 reached Zone 5 too late. Start all four at the speed you finished intervals 2 and 3 on.'};
   }
-  if (withHr.length === 4 && !low.length && !high.length && rpeOk && ivs.every(iv => iv.done)) return {speed: r1(start + 0.3), text: 'All four on target and under control. Start 0.3 faster next time.'};
-  if (withHr.length === 4 && !low.length && !high.length) return {speed: start, text: 'All on target, but it was hard. Keep the start speed until it feels like 8 out of 10 at most.'};
+  if (withHr.length === 4 && !low.length && !high.length && ivs.every(iv => iv.done)) {
+    const rated = ivs.filter(iv => isNum(iv.rpe));
+    if (rated.length && !rpeOk) return {speed: start, text: 'All on target, but it was hard. Keep the start speed until it feels like 8 out of 10 at most.'};
+    if (rated.length >= 3) return {speed: r1(start + 0.3), text: 'All four on target and under control. Start 0.3 faster next time.'};
+    const ends = ivs.slice(1).map(iv => iv.endSpeed).filter(isNum);
+    const base = ends.length ? r1(ends.reduce((a, b) => a + b, 0) / ends.length) : start;
+    const meanHr = withHr.reduce((a, iv) => a + iv.endHr, 0) / withHr.length;
+    const sp = r1(clamp(Math.max(base, start) + (meanHr <= lo + 1 ? 0.1 : 0), start - 0.3, start + 0.3));
+    return {speed: sp, text: sp > start ? `All four on target${meanHr <= lo + 1 ? ' with room to spare' : ''}. Next time starts ${num(sp - start)} faster.` : 'All four on target. Same start speed next time.'};
+  }
   return {speed: start, text: 'Close to target. Same start speed again and steer it cleanly.'};
 }
 function nextZ2(rec) {
   const hasSeries = (rec.hr5 || []).filter(isNum).length >= 24;
   const c = rec.checks.filter(x => isNum(x.hr));
   if (!hasSeries && !c.length) return null;
-  const lastSpeed = hasSeries ? speedAt(rec, rec.durSec) : (c[c.length - 1].speed || rec.startSpeed);
-  const base = r1(lastSpeed), t = rec.target;
-  if (rec.avgHr > t.aimHi + 2 || (rec.decoupling != null && rec.decoupling > 8) || c.some(x => x.talk === 'kurz')) return {speed: r1(base - 0.2), text: 'A bit too hard overall. Next time 0.2 slower or less vest weight.'};
-  if (rec.avgHr < t.aimLo - 3) return {speed: r1(base + 0.2), text: 'A bit too easy overall. Next time 0.2 faster or a little more vest weight.'};
-  return {speed: base, text: 'This pace fits. Start here next time.'};
+  const t = rec.target;
+  let lastSpeed = hasSeries ? speedAt(rec, rec.durSec) : (c[c.length - 1].speed || rec.startSpeed);
+  if (hasSeries) {
+    const inAim = (rec.hr5 || []).map((v, i) => [i * 5, v]).filter(([sec, v]) => sec >= 360 && isNum(v) && v >= t.aimLo && v <= t.aimHi);
+    if (inAim.length >= 12) lastSpeed = inAim.reduce((a, [sec]) => a + speedAt(rec, sec), 0) / inAim.length;
+  }
+  const base = r1(isNum(rec.startSpeed) ? clamp(lastSpeed, rec.startSpeed - 0.2, rec.startSpeed + 0.2) : lastSpeed);
+  if (rec.avgHr > t.aimHi + 2 || (rec.decoupling != null && rec.decoupling > 8) || c.some(x => x.talk === 'kurz')) return {speed: r1(base - 0.2), text: rec.vestKg ? 'A bit too hard overall. Next time 0.2 slower, or carry a little less.' : 'A bit too hard overall. Next time 0.2 slower.'};
+  if (rec.avgHr < t.aimLo - 3) return z2Cap(rec, {speed: r1(base + 0.2), text: 'A bit too easy overall. Next time 0.2 faster.'});
+  return z2Cap(rec, {speed: base, text: hasSeries ? 'This is the speed that kept you in your aim band. Start here next time.' : 'This pace fits. Start here next time.'});
+}
+/* first speed, then vest: above your top walking speed the vest takes over */
+function z2Cap(rec, res) {
+  const st = Store.settings, cap = st.walkMax, kg = rec.vestKg || 0;
+  if (res.speed <= cap) return res;
+  const bare = withoutVest(res.speed, kg, rec.incline, st.weight), need = vestFor(bare, cap, kg + 1, st, rec.incline);
+  if (need == null) return res;
+  return {speed: vestOn(bare, need, st, rec.incline), vestKg: need, text: `Your Zone 2 pace has reached your top walking speed of ${num(cap)}. ${kg ? `Carry ${kgTxt(need)} kg instead of ${kgTxt(kg)}` : `Time for the vest. Carry ${kgTxt(need)} kg`} next time, at the same effort.`};
 }
 
 /* ================= storage: claude db when available, local otherwise ================= */
@@ -697,7 +747,7 @@ function normSession(d) {
     hrSrc: ['whoop', 'sim', 'manual'].includes(d.hrSrc) ? d.hrSrc : 'manual', cmds: n(d.cmds) ?? 0,
     coolDone: d.coolDone == null ? null : !!d.coolDone, endedEarly: !!d.endedEarly,
     distKm: n(d.distKm) ?? 0, elevM: n(d.elevM) ?? 0, kcal: n(d.kcal) ?? 0,
-    z5MinWhoop: n(d.z5MinWhoop), note: typeof d.note === 'string' ? d.note.slice(0, 2000) : '',
+    z5MinWhoop: n(d.z5MinWhoop), note: typeof d.note === 'string' ? d.note.slice(0, 2000) : '', autoFrom: n(d.autoFrom), autoTo: n(d.autoTo), autoKgFrom: n(d.autoKgFrom), autoKgTo: n(d.autoKgTo),
     updatedAt: n(d.updatedAt) ?? 0, synced: !!d.synced
   };
   if (s.mode === '4x4') while (s.intervals.length < 4) s.intervals.push({n: s.intervals.length + 1, startSpeed: null, endSpeed: null, endHr: null, rpe: null, bail: false, done: false, skipped: false, auto: false});
@@ -1103,7 +1153,7 @@ const SIM = {
     if (dt <= 0) return;
     const st = Store.settings, ph = curPhase();
     const grade = (ph.incl || 0) / 100, v = (S.paused ? 0 : S.speed) * 1000 / 60;
-    const vo2 = 3.5 + 0.1 * v + 1.8 * v * grade, vo2max = 46;
+    const load = S.mode === 'z2' ? (S.opts.vestKg || 0) : 0, vo2 = 3.5 + (0.1 * v + 1.8 * v * grade) * (st.weight + load) / st.weight, vo2max = 46;
     const f = clamp((vo2 - 3.5) / (vo2max - 3.5), 0, 1.05);
     this.drift = f > 0.8 ? Math.min(12, this.drift + dt * 0.045) : Math.max(0, this.drift - dt * 0.06);
     const mins = sessionEl(now) / 60000;
@@ -1423,7 +1473,16 @@ function finishSession(at, early) {
   S.done = true; S.endedAt = at; S.endedEarly = !!early;
   const rec = buildRecord(S);
   if (S.demo) { rec.id = DEMO_ID; rec.demo = true; demoRec = rec; }
-  else Store.saveSession(rec, true);
+  else {
+    const st = Store.settings, key = rec.mode === '4x4' ? 'speed4x4' : 'z2Speed', prev = st[key], nx = rec.next;
+    const kg = rec.vestKg || 0, nKg = nx && isNum(nx.vestKg) ? nx.vestKg : kg;
+    if (st.autoProgress && !early && nx && isNum(nx.speed) && (nx.speed !== vestOn(prev, nKg, st, rec.incline) || nKg !== kg)) {
+      rec.autoFrom = prev; rec.autoTo = vestOff(nx.speed, nKg, st, rec.incline);
+      Store.setSetting(key, rec.autoTo);
+      if (nKg !== kg) { rec.autoKgFrom = kg; rec.autoKgTo = nKg; Store.setSetting('vestKg', nKg); }
+    }
+    Store.saveSession(rec, true);
+  }
   lastSummaryId = rec.id;
   Snd.play('done'); buzz([200, 100, 200, 100, 600]);
   Speaker.say(early ? ['saved'] : S.mode === '4x4' ? ['done4'] : ['done_z2']);
@@ -1747,8 +1806,9 @@ function heroHTML() {
     btns = `<button class="btn red" data-act="prep4x4">Prepare</button><button class="btn" data-act="prepZ2">Zone 2 instead</button>`;
   } else if (t === 'z2') {
     title = 'Zone 2';
-    lead = `${st.z2Minutes} min incline walking, ${num(st.z2Speed)} km/h at ${fmtIncl(st.incline)} %. Heart rate ${Z.aimLo} to ${Z.aimHi}, never above ${Z.z2hi}.`;
-    prof = `<div class="hero-pf">${profileSVG(buildZ2(st, {speed: st.z2Speed, minutes: st.z2Minutes}), {label: 'Today’s plan'})}<div class="pf-l"><span>5 min easy start</span><span>${st.z2Minutes - 5} min Zone 2</span></div></div>`;
+    const z2Now = vestOn(st.z2Speed, st.vestKg);
+    lead = `${st.z2Minutes} min incline walking, ${num(z2Now)} km/h at ${fmtIncl(st.incline)} %${st.vestKg ? ` with ${kgTxt(st.vestKg)} kg in the vest` : ''}. Heart rate ${Z.aimLo} to ${Z.aimHi}, never above ${Z.z2hi}.`;
+    prof = `<div class="hero-pf">${profileSVG(buildZ2(st, {speed: z2Now, minutes: st.z2Minutes}), {label: 'Today’s plan'})}<div class="pf-l"><span>5 min easy start</span><span>${st.z2Minutes - 5} min Zone 2</span></div></div>`;
     btns = `<button class="btn green" data-act="prepZ2">Prepare</button>`;
   } else {
     title = t === 'kraft' ? 'Strength' : 'Rest day';
@@ -1778,7 +1838,7 @@ function viewHome() {
   <section class="section"><div class="sec-head"><h2>This week</h2><a href="#history">History</a></div>${weekStripHTML(now)}${kpisHTML(ws)}</section>
   <section class="section"><h2>Start a session</h2><div class="modes">
     <button class="mode" data-m="4x4" data-act="prep4x4"><span class="eyebrow">VO2max</span><span class="mk">4×4</span><span class="muted small">40 min · from ${num(st.speed4x4)} km/h · finish ${Z.endLo} to ${Z.endHi}</span><span class="go">Prepare ${ICON.arrow}</span></button>
-    <button class="mode" data-m="z2" data-act="prepZ2"><span class="eyebrow">Base</span><span class="mk">Zone 2</span><span class="muted small">${st.z2Minutes} min · ${num(st.z2Speed)} km/h · heart rate ${Z.z2lo} to ${Z.z2hi}</span><span class="go">Prepare ${ICON.arrow}</span></button>
+    <button class="mode" data-m="z2" data-act="prepZ2"><span class="eyebrow">Base</span><span class="mk">Zone 2</span><span class="muted small">${st.z2Minutes} min · ${num(vestOn(st.z2Speed, st.vestKg))} km/h${st.vestKg ? ' · vest ' + kgTxt(st.vestKg) + ' kg' : ''} · heart rate ${Z.z2lo} to ${Z.z2hi}</span><span class="go">Prepare ${ICON.arrow}</span></button>
   </div></section>
   <section class="section"><div class="sec-head"><h2>Your zones</h2><span class="muted small">Max ${Z.max} · rest ${Z.rest}</span></div>${zoneBarHTML(Z)}<p class="muted small">Calculated like WHOOP, from your heart rate reserve. Change them in Setup.</p></section>`;
 }
@@ -1837,7 +1897,13 @@ function viewPrep4x4() {
   <section class="section"><button class="btn xl ${startCls}" data-act="start4x4" ${UI4.rec ? '' : 'disabled'} id="p4-start">${startLabel}</button><p class="muted small">Stop right away if you feel chest pain or pressure, dizziness, palpitations, or shortness of breath that doesn’t match the effort.</p>
   <button class="btn ghost" data-act="demo4x4">Test run at 10× speed</button><p class="muted small">About 4 minutes with every announcement and a simulated heart rate. Nothing is saved.</p></section>`;
 }
-function initUIZ() { const st = Store.settings; UIZ = {minutes: st.z2Minutes, speed: st.z2Speed, vest: st.vestKg, every: st.checkEvery, quiet: st.z2Quiet, ck: {}}; }
+function initUIZ() { const st = Store.settings; UIZ = {minutes: st.z2Minutes, vest: st.vestKg, bare: st.z2Speed, speed: vestOn(st.z2Speed, st.vestKg), every: st.checkEvery, quiet: st.z2Quiet, ck: {}}; }
+function setUIZVest(kg) { UIZ.vest = clamp(Math.round(kg * 2) / 2, 0, 30); UIZ.speed = clamp(vestOn(UIZ.bare, UIZ.vest), 1, 12); rerenderKeep(); }
+function z2CapNote(st) {
+  if (UIZ.speed <= st.walkMax) return '';
+  const kg = vestFor(UIZ.bare, st.walkMax, UIZ.vest + 1);
+  return `<p class="note warn">Faster than your top walking speed of ${num(st.walkMax)}. ${kg ? `With ${kgTxt(kg)} kg in the vest it is ${num(vestOn(UIZ.bare, kg))} km/h at the same effort.` : 'Add vest weight to stay at a walk.'}</p>${kg ? `<button class="btn" data-act="zVest" data-v="${kg}">Use ${kgTxt(kg)} kg</button>` : ''}`;
+}
 function viewPrepZ2() {
   const st = Store.settings, Z = zonesOf(st);
   if (!UIZ) initUIZ();
@@ -1849,11 +1915,12 @@ function viewPrepZ2() {
   <p class="muted">Aim for ${Z.aimLo} to ${Z.aimHi}. Zone 2 runs from ${Z.z2lo} to ${Z.z2hi}. You should still be able to talk in full sentences.</p>
   <section class="section"><h2>Heart rate</h2><div data-hrpanel="full">${hrPanelHTML(false)}</div></section>
   <section class="section"><h2>Duration</h2><div class="chips">${chips('zMin', [45, 60, 75, 90], UIZ.minutes, v => v + ' min')}</div></section>
-  <section class="section"><h2>Speed and vest</h2>
+  <section class="section"><h2>Vest and speed</h2>
     <div class="card"><div class="rows">
-      <div class="row"><div class="row-l"><span class="row-k">Speed</span><span class="row-h">at ${fmtIncl(st.incline)} %${live ? ', the coach fine-tunes it' : ''}</span></div><div class="stepper"><button data-act="zSpd" data-d="-0.1" aria-label="Speed minus 0.1">−</button><output id="z-speed">${num(UIZ.speed)}</output><button data-act="zSpd" data-d="0.1" aria-label="Speed plus 0.1">+</button></div></div>
-      <div class="row"><div class="row-l"><span class="row-k">Weight vest</span><span class="row-h">Zone 2 only, build the load slowly</span></div></div>
-    </div><div class="chips">${chips('zVest', [0, 5, 10, 15, 20], UIZ.vest, v => v ? v + ' kg' : 'none')}</div></div>
+      <div class="row"><div class="row-l"><span class="row-k">Weight vest</span><span class="row-h">Zone 2 only, build the load slowly</span></div><div class="stepper"><button data-act="zVestStep" data-d="-1" aria-label="Vest minus 1 kg">−</button><output id="z-vest">${UIZ.vest ? kgTxt(UIZ.vest) + ' kg' : 'none'}</output><button data-act="zVestStep" data-d="1" aria-label="Vest plus 1 kg">+</button></div></div>
+    </div><div class="chips grid5" role="group" aria-label="Vest weight in kg">${chips('zVest', [0, 5, 10, 15, 20], UIZ.vest, v => v ? String(v) : 'none')}</div>
+    <div class="rows"><div class="row"><div class="row-l"><span class="row-k">Speed</span><span class="row-h" id="z-speed-h">${UIZ.vest ? `Same effort as ${num(r1(UIZ.bare))} without the vest` : `at ${fmtIncl(st.incline)} %`}${live ? ', the coach fine-tunes it' : ''}</span></div><div class="stepper"><button data-act="zSpd" data-d="-0.1" aria-label="Speed minus 0.1">−</button><output id="z-speed">${num(UIZ.speed)}</output><button data-act="zSpd" data-d="0.1" aria-label="Speed plus 0.1">+</button></div></div></div>
+    ${z2CapNote(st)}</div>
   </section>
   <section class="section"><h2>Announcements</h2>
     <button class="toggle" role="switch" aria-checked="${UIZ.quiet}" data-act="zQuiet"><span class="tl"><span class="row-k">Only speed changes</span><span class="th">Skips halfway, sip and 10 minutes left</span></span><span class="sw"></span></button>
@@ -2116,11 +2183,14 @@ function viewSummary() {
     if (!hasSeries) body += `${rec.checks.length ? '' : '<p class="note warn">No heart rate checks saved. The score then only rates the duration.</p>'}
     <div class="card"><div class="sec-head"><h3>Heart rate checks</h3><span class="muted small">Aim ${rec.target.aimLo} to ${rec.target.aimHi}</span></div>${checksChartSVG(rec.checks, Zr, rec.plannedMin)}</div>`;
     body += `<div class="kpis two"><div class="kpi"><span class="k">Duration</span><span class="v">${Math.round(rec.durSec / 60)}<small>/${rec.plannedMin} min</small></span></div><div class="kpi"><span class="k">Avg heart rate</span><span class="v">${rec.avgHr ?? '?'}</span></div><div class="kpi"><span class="k">In Zone 2</span><span class="v">${rec.inZonePct == null ? 'open' : rec.inZonePct + '<small> %</small>'}</span></div><div class="kpi"><span class="k">Drift</span><span class="v">${rec.decoupling == null ? 'open' : num(rec.decoupling) + '<small> %</small>'}</span></div><div class="kpi"><span class="k">Distance</span><span class="v">${num(rec.distKm, 2)}<small> km</small></span></div><div class="kpi"><span class="k">Energy</span><span class="v">${int(rec.kcal)}<small> kcal</small></span></div></div>
-    <p class="muted small">Drift compares speed per heartbeat in the first and second half. Below 5 % means a solid base.${hasSeries ? ` The coach corrected your speed ${rec.cmds || 0} times.` : ''}</p>`;
+    <p class="muted small">Drift compares speed per heartbeat in the first and second half. Below 5 % means a solid base.${hasSeries ? ` The coach corrected your speed ${rec.cmds === 1 ? 'once' : (rec.cmds || 0) + ' times'}.` : ''}</p>`;
   }
-  const nx = rec.next;
-  const isStart = nx && (is4 ? Store.settings.speed4x4 : Store.settings.z2Speed) === nx.speed;
-  const nextCard = nx ? `<div class="card next"><span class="eyebrow">Next time</span><div class="nv">${num(nx.speed)} <small class="muted" style="font-size:18px">km/h</small></div><p class="muted">${esc(nx.text)}</p>${rec.demo ? '' : `<button class="btn ${isStart ? '' : 'primary'}" data-act="applyNext" ${isStart ? 'disabled' : ''}>${isStart ? 'Already your start speed' : 'Use as start speed'}</button>`}</div>` : '';
+  const stg = Store.settings, key = is4 ? 'speed4x4' : 'z2Speed', nx = rec.next, kg = rec.vestKg || 0, nKg = nx && isNum(nx.vestKg) ? nx.vestKg : kg;
+  const isStart = nx && vestOn(stg[key], nKg, stg, rec.incline) === nx.speed && (is4 || stg.vestKg === nKg);
+  const auto = nx && isNum(rec.autoTo) && isNum(rec.autoFrom) && stg[key] === rec.autoTo;
+  const was = auto ? num(vestOn(rec.autoFrom, kg, stg, rec.incline)) : '', kgMoved = auto && isNum(rec.autoKgTo);
+  const nextBtn = rec.demo ? '' : auto ? `<p class="muted small">Set automatically, was ${was} km/h${kgMoved ? (kg ? ` with ${kgTxt(kg)} kg` : ' without the vest') : ''}.</p><button class="btn" data-act="undoNext">Undo, keep ${was}${kgMoved ? (kg ? ` with ${kgTxt(kg)} kg` : ' without vest') : ''}</button>` : `<button class="btn ${isStart ? '' : 'primary'}" data-act="applyNext" ${isStart ? 'disabled' : ''}>${isStart ? 'Already your start speed' : 'Use as start speed'}</button>`;
+  const nextCard = nx ? `<div class="card next"><span class="eyebrow">Next time</span><div class="nv">${num(nx.speed)} <small class="muted" style="font-size:18px">km/h${nKg ? ' · vest ' + kgTxt(nKg) + ' kg' : ''}</small></div><p class="muted">${esc(nx.text)}</p>${nextBtn}</div>` : '';
   return `${runbarHTML()}${head}${scoreCard}${body}${nextCard}
   <section class="section"><label class="eyebrow" for="sum-note">Note</label><textarea id="sum-note" maxlength="2000" placeholder="Legs, sleep, shoes, anything notable">${esc(rec.note)}</textarea></section>
   <div class="btn-row"><button class="btn primary" data-act="copySession">Copy for Claude</button><a class="btn" href="#today">Done</a></div>
@@ -2137,7 +2207,7 @@ function sessionText(rec) {
     L.push(`Zone 5: ${rec.z5Measured ? num(rec.z5Min) + ' min measured' : isNum(rec.z5MinWhoop) ? num(rec.z5MinWhoop) + ' min per WHOOP' : 'about ' + num(rec.z5Min) + ' min (estimate)'}${rec.maxHr ? ' · max ' + rec.maxHr : ''}`);
     L.push(`Cool-down ${rec.coolDone ? 'done' : 'not finished'}${rec.longestPauseSec > 120 ? ' · longest break ' + hms(rec.longestPauseSec) : ''}${rec.cmds ? ' · ' + rec.cmds + ' speed corrections' : ''}`);
   } else {
-    L.push(`Zone 2 · ${ds} · ${Math.round(rec.durSec / 60)} of ${rec.plannedMin} min · incline ${fmtIncl(rec.incline)} %${rec.vestKg ? ' · vest ' + num(rec.vestKg) + ' kg' : ''}`);
+    L.push(`Zone 2 · ${ds} · ${Math.round(rec.durSec / 60)} of ${rec.plannedMin} min · incline ${fmtIncl(rec.incline)} %${rec.vestKg ? ' · vest ' + kgTxt(rec.vestKg) + ' kg' : ''}`);
     if ((rec.hr5 || []).some(isNum)) {
       const per5 = [];
       for (let i = 0; i < rec.hr5.length; i += 60) { const sl = rec.hr5.slice(i, i + 60).filter(isNum); if (sl.length) per5.push(Math.round(sl.reduce((a, b) => a + b, 0) / sl.length)); }
@@ -2170,7 +2240,7 @@ function copyText(text, okMsg) {
 function scoreClass(v) { return v == null ? 's-na' : v >= 85 ? 's-hi' : v >= 70 ? 's-mid' : 's-lo'; }
 function histItem(s) {
   const d = new Date(s.startedAt);
-  const line = s.mode === '4x4' ? `Finish ${s.intervals.map(i => isNum(i.endHr) ? i.endHr : '?').join(' · ')} · from ${num(s.intervals[0] && isNum(s.intervals[0].startSpeed) ? s.intervals[0].startSpeed : s.startSpeed)}` : `${Math.round(s.durSec / 60)} min · avg ${s.avgHr ?? '?'} bpm · ${num(s.distKm, 1)} km`;
+  const line = s.mode === '4x4' ? `Finish ${s.intervals.map(i => isNum(i.endHr) ? i.endHr : '?').join(' · ')} · from ${num(s.intervals[0] && isNum(s.intervals[0].startSpeed) ? s.intervals[0].startSpeed : s.startSpeed)}` : `${Math.round(s.durSec / 60)} min · avg ${s.avgHr ?? '?'} bpm · ${num(s.distKm, 1)} km${s.vestKg ? ' · vest ' + kgTxt(s.vestKg) + ' kg' : ''}`;
   return `<button class="hist" data-act="openSession" data-id="${esc(s.id)}"><span class="hb ${s.mode === '4x4' ? 'r' : 'g'}">${s.mode === '4x4' ? '4×4' : 'Z2'}</span><span class="hm"><span class="hd">${esc(dateShort(d))} · ${timeOf(d)}</span><span class="hl">${esc(line)}</span></span><span class="hs ${scoreClass(s.score && s.score.total)}">${s.score && s.score.total != null ? s.score.total : '?'}</span></button>`;
 }
 function weeksChartSVG() {
@@ -2280,6 +2350,8 @@ function viewLearn() {
     <li>Talk test: full sentences should work.</li>
     <li>If your heart rate creeps up at the same speed over time, that’s drift. Below 5 % is strong.</li>
     <li>Weight vest in Zone 2 only, never in a 4×4. Build the load slowly.</li>
+    <li>Pick the vest weight before you start and the coach lowers the speed so the effort stays the same. At ${inc} % that is about ${num(r1(st.z2Speed - vestOn(st.z2Speed, 5)))} km/h per 5 kg at your Zone 2 pace.</li>
+    <li>First speed, then vest. Once your Zone 2 pace reaches your top walking speed of ${num(st.walkMax)}, the coach suggests vest weight instead of more speed.</li>
     <li>${inc} % every day loads your Achilles and plantar fascia. With pulling or morning stiffness, drop to 10 to 12 % or take a bike day.</li>
   </ul></section>
   <section class="section k-sec"><h2>Why it works</h2>
@@ -2291,10 +2363,10 @@ function viewLearn() {
 const SET_GROUPS = [
   ['Heart rate', [['hrMax', 'Max heart rate', 'from WHOOP', 1, 0], ['hrRest', 'Resting heart rate', 'morning value', 1, 0]]],
   ['Norwegian 4×4', [['speed4x4', 'Interval start speed', 'km/h', 0.1, 1], ['warmSpeed', 'Warm-up', 'km/h', 0.1, 1], ['recSpeed', 'Recovery', 'km/h', 0.1, 1], ['incline', 'Incline', '% for both sessions', 0.5, 1]]],
-  ['Zone 2', [['z2Speed', 'Speed', 'km/h', 0.1, 1], ['z2Minutes', 'Duration', 'min', 5, 0], ['vestKg', 'Weight vest', 'kg', 2.5, 1], ['checkEvery', 'Manual check every', 'min, only without live heart rate', 5, 0], ['z2Week', 'Weekly goal', 'min of Zone 2', 10, 0]]],
-  ['Body', [['weight', 'Body weight', 'kg, only for the kcal estimate', 0.5, 1]]]
+  ['Zone 2', [['z2Speed', 'Speed without vest', 'km/h, lowered for the vest you carry', 0.1, 1], ['z2Minutes', 'Duration', 'min', 5, 0], ['vestKg', 'Weight vest', 'kg, your usual load', 1, 1], ['checkEvery', 'Manual check every', 'min, only without live heart rate', 5, 0], ['z2Week', 'Weekly goal', 'min of Zone 2', 10, 0]]],
+  ['Body', [['weight', 'Body weight', 'kg, for the vest math and kcal', 0.5, 1]]]
 ];
-function setVal(k, dec) { const v = Store.settings[k]; return k === 'incline' ? fmtIncl(v) : k === 'vestKg' && !v ? 'none' : num(v, dec); }
+function setVal(k, dec) { const v = Store.settings[k]; return k === 'incline' ? fmtIncl(v) : k === 'vestKg' ? (v ? kgTxt(v) : 'none') : num(v, dec); }
 function viewSetup() {
   const st = Store.settings, Z = zonesOf(st);
   const groups = SET_GROUPS.map(([title, rows]) => `<section class="section"><h2>${title}</h2><div class="card"><div class="rows">${rows.map(([k, label, hint, step, dec]) => `<div class="row"><div class="row-l"><span class="row-k">${label}</span><span class="row-h">${hint}</span></div><div class="stepper"><button data-act="set" data-k="${k}" data-d="${-step}" data-dec="${dec}" aria-label="Lower ${label}">−</button><output id="set-${k}">${setVal(k, dec)}</output><button data-act="set" data-k="${k}" data-d="${step}" data-dec="${dec}" aria-label="Raise ${label}">+</button></div></div>`).join('')}</div>${title === 'Heart rate' ? `<div id="set-zones">${zoneBarHTML(Z)}</div>` : ''}</div></section>`).join('');
@@ -2302,6 +2374,8 @@ function viewSetup() {
   return `${runbarHTML()}<span class="eyebrow">Setup</span><h1>Your numbers</h1>
   <section class="section"><h2>WHOOP live heart rate</h2><div data-hrpanel="full">${hrPanelHTML(false)}</div></section>
   ${groups}
+  <section class="section"><h2>Progression</h2><button class="toggle" role="switch" aria-checked="${st.autoProgress}" data-act="autoTog"><span class="tl"><span class="row-k">Adjust start speeds automatically</span><span class="th">After each session, from your finish heart rates and the speed that kept you in Zone 2</span></span><span class="sw"></span></button>
+  <div class="card"><div class="rows"><div class="row"><div class="row-l"><span class="row-k">Top walking speed</span><span class="row-h">km/h. Above it Zone 2 adds vest weight and the 4×4 start holds</span></div><div class="stepper"><button data-act="set" data-k="walkMax" data-d="-0.1" data-dec="1" aria-label="Lower top walking speed">−</button><output id="set-walkMax">${setVal('walkMax', 1)}</output><button data-act="set" data-k="walkMax" data-d="0.1" data-dec="1" aria-label="Raise top walking speed">+</button></div></div></div></div></section>
   <section class="section"><h2>Weekly plan</h2><p class="muted small">Tap a day to switch between strength, 4×4, Zone 2 and rest.</p><div class="plan">${st.plan.map((p, i) => `<button class="pd" data-act="plan" data-i="${i}" data-t="${p}" aria-label="${DAYS[i]}: ${PLAN_LONG[p]}"><span class="dn">${DAYS[i]}</span><span class="dt">${PLAN_SHORT[p]}</span></button>`).join('')}</div></section>
   <section class="section"><h2>Coach voice</h2><div class="chips grid3" role="group" aria-label="Coach voice">${vb('heart', 'Heart', 'US, female')}${vb('michael', 'Michael', 'US, male')}${vb('phone', 'Phone', 'your phone’s voice')}</div><span class="vstat" data-vstat data-s="${Speaker.state}">${voiceStatusText()}</span></section>
   <section class="section"><h2>Sound</h2>${soundRowHTML()}</section>
@@ -2352,6 +2426,7 @@ const ACT = {
   legs: () => { UI4.legs = !UI4.legs; UI4.speed = clamp(r1(UI4.speed + (UI4.legs ? -0.5 : 0.5)), 2, 16); rerenderKeep(); },
   p4spd: t => { UI4.speed = clamp(r1(UI4.speed + Number(t.dataset.d)), 2, 16); rerenderKeep(); },
   ck: t => { const st = route() === 'prep-4x4' ? UI4 : UIZ; st.ck[t.dataset.k] = !st.ck[t.dataset.k]; t.setAttribute('aria-checked', String(!!st.ck[t.dataset.k])); const list = route() === 'prep-4x4' ? CK4 : CKZ; const c = $('#ck-count'); if (c) c.textContent = list.filter(([k]) => st.ck[k]).length + ' of ' + list.length; },
+  autoTog: t => { Store.setSetting('autoProgress', !Store.settings.autoProgress); t.setAttribute('aria-checked', String(Store.settings.autoProgress)); },
   sndTog: t => { const k = t.dataset.k; Store.setSetting(k, !Store.settings[k]); t.setAttribute('aria-checked', String(Store.settings[k])); },
   sndTest: () => { Snd.unlock(); setTimeout(() => { Snd.play('go', true); buzz([100, 60, 100]); Speaker.say(['test'], {force: true}); if (!Snd.ctx) toast('This device doesn’t play sound here.'); }, 60); },
   voicePick: t => { const v = t.dataset.v; Store.setSetting('voiceName', v); document.querySelectorAll('[data-act="voicePick"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === v))); Speaker.state = v === 'phone' ? 'phone' : (Speaker.loaded === v && Speaker.buf ? 'ready' : 'idle'); uiVoice(); Speaker.load(v).then(() => { Snd.unlock(); Speaker.say(['test'], {force: true}); }); },
@@ -2365,11 +2440,12 @@ const ACT = {
     startSession('4x4', {recovery: UI4.rec, legsHeavy: UI4.legs, startSpeed: UI4.speed, incline: Store.settings.incline});
   },
   zMin: t => { UIZ.minutes = Number(t.dataset.v); rerenderKeep(); },
-  zSpd: t => { UIZ.speed = clamp(r1(UIZ.speed + Number(t.dataset.d)), 1, 12); rerenderKeep(); },
-  zVest: t => { UIZ.vest = Number(t.dataset.v); rerenderKeep(); },
+  zSpd: t => { UIZ.speed = clamp(r1(UIZ.speed + Number(t.dataset.d)), 1, 12); UIZ.bare = withoutVest(UIZ.speed, UIZ.vest, Store.settings.incline, Store.settings.weight); rerenderKeep(); },
+  zVest: t => setUIZVest(Number(t.dataset.v)),
+  zVestStep: t => setUIZVest(UIZ.vest + Number(t.dataset.d)),
   zEvery: t => { UIZ.every = Number(t.dataset.v); rerenderKeep(); },
   zQuiet: () => { UIZ.quiet = !UIZ.quiet; Store.setSetting('z2Quiet', UIZ.quiet); rerenderKeep(); },
-  startZ2: () => { if (S) { toast('A session is already running.'); go(S.closedPause ? 'today' : 'live'); return; } Snd.unlock(); startSession('z2', {minutes: UIZ.minutes, speed: UIZ.speed, vestKg: UIZ.vest, every: UIZ.every, quiet: UIZ.quiet, incline: Store.settings.incline}); },
+  startZ2: () => { if (S) { toast('A session is already running.'); go(S.closedPause ? 'today' : 'live'); return; } Snd.unlock(); if (UIZ.vest !== Store.settings.vestKg) Store.setSetting('vestKg', UIZ.vest); startSession('z2', {minutes: UIZ.minutes, speed: UIZ.speed, vestKg: UIZ.vest, every: UIZ.every, quiet: UIZ.quiet, incline: Store.settings.incline}); },
   demo4x4: () => { if (S) { toast('End the running session first.'); return; } Snd.unlock(); const rec = UI4 && (UI4.rec === 'gruen' || UI4.rec === 'gelb') ? UI4.rec : 'gruen'; startSession('4x4', {recovery: rec, legsHeavy: !!(UI4 && UI4.legs), startSpeed: UI4 ? UI4.speed : Store.settings.speed4x4, incline: Store.settings.incline}, 10); },
   demoZ2: () => { if (S) { toast('End the running session first.'); return; } Snd.unlock(); if (!UIZ) initUIZ(); startSession('z2', {minutes: UIZ.minutes, speed: UIZ.speed, vestKg: UIZ.vest, every: UIZ.every, quiet: UIZ.quiet, incline: Store.settings.incline}, 10); },
   spd: t => setSpeed(Number(t.dataset.d)),
@@ -2409,7 +2485,20 @@ const ACT = {
   chkSave: () => chkSave(),
   sumHr: t => openHrSheet(Number(t.dataset.n), 'sum', lastSummaryId),
   z5: t => { const rec = recById(lastSummaryId); if (!rec) return; const base = isNum(rec.z5MinWhoop) ? rec.z5MinWhoop : rec.z5Min || 0; rec.z5MinWhoop = clamp(Math.round((base + Number(t.dataset.d)) * 2) / 2, 0, 30); $('#sum-z5').textContent = num(rec.z5MinWhoop); saveRec(rec, true); },
-  applyNext: () => { const rec = recById(lastSummaryId); if (!rec || !rec.next) return; Store.setSetting(rec.mode === '4x4' ? 'speed4x4' : 'z2Speed', rec.next.speed); toast(`Start speed is now ${num(rec.next.speed)} km/h`); render(); },
+  undoNext: () => {
+    const rec = recById(lastSummaryId); if (!rec || !isNum(rec.autoFrom)) return;
+    Store.setSetting(rec.mode === '4x4' ? 'speed4x4' : 'z2Speed', rec.autoFrom);
+    if (isNum(rec.autoKgTo) && isNum(rec.autoKgFrom)) Store.setSetting('vestKg', rec.autoKgFrom);
+    const back = vestOn(rec.autoFrom, rec.vestKg || 0, Store.settings, rec.incline);
+    rec.autoTo = null; rec.autoKgTo = null; saveRec(rec, true); toast(`Start speed back to ${num(back)} km/h`); render();
+  },
+  applyNext: () => {
+    const rec = recById(lastSummaryId); if (!rec || !rec.next) return;
+    const kg = isNum(rec.next.vestKg) ? rec.next.vestKg : rec.vestKg || 0;
+    Store.setSetting(rec.mode === '4x4' ? 'speed4x4' : 'z2Speed', vestOff(rec.next.speed, kg, Store.settings, rec.incline));
+    if (rec.mode === 'z2' && kg !== Store.settings.vestKg) Store.setSetting('vestKg', kg);
+    toast(`Start speed is now ${num(rec.next.speed)} km/h`); render();
+  },
   copySession: () => { const rec = recById(lastSummaryId); if (rec) copyText(sessionText(rec)); },
   openSession: t => { lastSummaryId = t.dataset.id; go('summary'); },
   delAsk: () => confirmSheet({title: 'Delete this session?', text: 'It disappears from your history and your account. This can’t be undone.', buttons: [{label: 'Delete', act: 'delDo', cls: 'red'}, {label: 'Keep it', act: 'sheetClose'}]}),
@@ -2479,6 +2568,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 /* small read-only hook for automated checks */
+window.__coachTest = {vestOn: (v, kg) => vestOn(v, kg), vestOff: (v, kg) => vestOff(v, kg), vestFor: (b, cap, from) => vestFor(b, cap, from)};
 window.__coachDebug = () => ({route: route(), speed: S ? S.speed : null, phase: S ? curPhase().key : null, hrSrc: S ? S.hrSrc : null, hr: HR.bpm, hrState: HR.state, said: Speaker.log.map(x => x.keys), voice: Speaker.state, path: Speaker.path, env: ENV});
 
 /* ================= boot ================= */
@@ -2502,11 +2592,21 @@ function restoreActive(hotActive) {
   ensureLoop();
   if (!S.closedPause) { if (!S.paused) Wake.request(); if (route() !== 'live') location.hash = 'live'; }
 }
+/* one-tap personal setup link: #me-<max HR>-<resting HR>-<body weight> */
+function applySetupHash() {
+  const m = /^#me-(\d{3})-(\d{2,3})(?:-(\d{2,3}))?$/.exec(location.hash || '');
+  if (!m) return;
+  const cur = Store.settings;
+  Store.replaceSettings(Object.assign({}, cur, {hrMax: +m[1], hrRest: +m[2], weight: m[3] ? +m[3] : cur.weight}));
+  try { history.replaceState(null, '', location.pathname + location.search + '#today'); } catch (e) { location.hash = 'today'; }
+  setTimeout(() => toast('Your heart rate zones are set.'), 400);
+}
 let booted = false;
 function boot(data) {
   if (booted) return;
   booted = true;
   Store.init();
+  applySetupHash();
   restoreActive(data && data.active);
   render();
   Store.connect();
