@@ -1,0 +1,2523 @@
+<!doctype html><html lang="en"><head><title>4×4 & Zone 2 Coach</title><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0a1530"><meta name="color-scheme" content="dark"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Saira+Condensed:wght@500;600;700;800&display=swap">
+<style>
+/* Layout: one console column (max 560px) with a bottom tab bar. The live session owns the whole screen.
+   Dark only, by choice: a treadmill console read at arm's length in a gym.
+   Palette: Norwegian navy, flag red for work, glacier blue for recovery, fjord teal for warm-up, spruce green for Zone 2. */
+:root{
+  color-scheme: dark;
+  --night:#0a1530;
+  --deck:#101e3d;
+  --deck-2:#172a50;
+  --deck-3:#22375f;
+  --rule:#2b4068;
+  --ink:#eef3fb;
+  --ink-2:#b4c1d9;
+  --ink-3:#8796b5;
+  --flag:#f0445a;
+  --flag-btn:#c42a41;
+  --glacier:#93d0f2;
+  --fjord:#46bfae;
+  --spruce:#69cf93;
+  --amber:#f4bb4f;
+  --on-light:#0a1530;
+  --on-red:#ffffff;
+  --on-green:#062312;
+  --shade:rgba(3,8,22,.62);
+  --shadow:rgba(0,0,0,.45);
+  --z1:#8197bd; --z2:#69cf93; --z3:#e6d35e; --z4:#f59c4a; --z5:#f0445a;
+  --display:"Saira Condensed","Roboto Condensed","Arial Narrow",sans-serif-condensed,system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --r1:10px; --r2:16px; --r3:22px;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{background:var(--night)}
+body{background:var(--night);color:var(--ink);font:400 16px/1.45 var(--body);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;touch-action:manipulation;text-align:inherit}
+a{color:var(--glacier)}
+h1,h2,h3{margin:0;font-family:var(--display);font-weight:700;letter-spacing:.01em;line-height:1.05;text-wrap:balance}
+h1{font-size:36px}
+h2{font-size:24px}
+h3{font-size:20px}
+p{margin:0}
+:focus-visible{outline:3px solid var(--glacier);outline-offset:2px;border-radius:6px}
+.eyebrow{font:700 12px/1.25 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.muted{color:var(--ink-2)}
+.small{font-size:14px}
+.tnum{font-variant-numeric:tabular-nums}
+
+.wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px calc(104px + env(safe-area-inset-bottom,0px));outline:none;display:flex;flex-direction:column;gap:14px}
+body.is-live .wrap{padding-block:8px 28px}
+body.is-live .tabs{display:none}
+.section{display:flex;flex-direction:column;gap:12px;margin-top:14px}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.sec-head a,.link{font-weight:700;color:var(--glacier);text-decoration:none;font-size:15px}
+.link{align-self:flex-start;min-height:44px;display:inline-flex;align-items:center}
+.link.danger{color:var(--flag)}
+
+/* tabs */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--night);border-top:1px solid var(--rule);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.tabs-in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.tab{min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--ink-3);font:700 11px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;text-decoration:none}
+.tab svg{width:22px;height:22px}
+.tab[aria-current="page"]{color:var(--ink)}
+.tab[aria-current="page"] svg{color:var(--flag)}
+
+/* generic controls */
+.btn{min-height:52px;padding:0 18px;border-radius:14px;border:1px solid var(--rule);background:var(--deck-2);color:var(--ink);font:700 17px/1.15 var(--body);display:inline-flex;align-items:center;justify-content:center;gap:8px;text-align:center;text-decoration:none}
+.btn svg{width:20px;height:20px;flex:none}
+.btn.primary{background:var(--ink);color:var(--on-light);border-color:var(--ink)}
+.btn.red{background:var(--flag-btn);border-color:var(--flag-btn);color:var(--on-red)}
+.btn.green{background:var(--spruce);border-color:var(--spruce);color:var(--on-green)}
+.btn.ghost{background:transparent}
+.btn.xl{min-height:64px;font-size:20px;border-radius:18px;width:100%}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-row{display:flex;flex-wrap:wrap;gap:10px}
+.btn-row>.btn{flex:1 1 140px}
+.card{background:var(--deck);border:1px solid var(--rule);border-radius:var(--r2);padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.note{font-size:15px;line-height:1.4;color:var(--ink-2);background:var(--deck);border:1px solid var(--rule);border-radius:12px;padding:10px 12px}
+.note.warn{border-color:var(--amber);color:var(--ink)}
+.note.stop{border-color:var(--flag);color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding:2px 2px 6px;scroll-snap-type:x proximity}
+.chips.scroll::-webkit-scrollbar{display:none}
+.chip{flex:none;min-height:46px;min-width:52px;padding:0 12px;border-radius:12px;background:var(--deck-2);border:1px solid var(--rule);color:var(--ink);font:700 19px/1 var(--display);font-variant-numeric:tabular-nums;scroll-snap-align:center;position:relative}
+.chip.tgt::after{content:"";position:absolute;left:50%;bottom:5px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--spruce)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--on-light);border-color:var(--ink)}
+.chip.txt{font:700 15px/1.1 var(--body)}
+.chips.grid5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
+.chips.grid5 .chip{min-width:0}
+.chips.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.chips.grid2 .chip{min-width:0;padding:6px 8px}
+.chips.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.chips.grid3 .chip{min-width:0;padding:6px 8px}
+.seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.seg-b{min-height:56px;border-radius:14px;border:2px solid var(--rule);background:var(--deck);font:700 20px/1 var(--display);letter-spacing:.03em;display:flex;align-items:center;justify-content:center;gap:8px}
+.seg-b::before{content:"";width:12px;height:12px;border-radius:50%;background:var(--sc)}
+.seg-b[data-v="gruen"]{--sc:var(--spruce)}
+.seg-b[data-v="gelb"]{--sc:var(--amber)}
+.seg-b[data-v="rot"]{--sc:var(--flag)}
+.seg-b[aria-checked="true"]{border-color:var(--sc);background:color-mix(in srgb,var(--sc) 20%,var(--deck))}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:56px;padding:10px 14px;border-radius:14px;background:var(--deck);border:1px solid var(--rule)}
+.toggle .tl{display:flex;flex-direction:column;min-width:0}
+.toggle .th{font-size:13px;color:var(--ink-3)}
+.sw{flex:none;width:48px;height:28px;border-radius:99px;background:var(--deck-3);position:relative;transition:background .15s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--ink-2);transition:transform .15s}
+.toggle[aria-checked="true"] .sw{background:var(--glacier)}
+.toggle[aria-checked="true"] .sw::after{transform:translateX(20px);background:var(--night)}
+.checks{display:flex;flex-direction:column;gap:8px}
+.ck{display:flex;align-items:center;gap:12px;min-height:52px;padding:8px 12px;border-radius:14px;background:var(--deck);border:1px solid var(--rule);width:100%}
+.ck .box{flex:none;width:26px;height:26px;border-radius:8px;border:2px solid var(--ink-3);display:grid;place-items:center;color:transparent}
+.ck .box svg{width:18px;height:18px}
+.ck[aria-checked="true"] .box{background:var(--spruce);border-color:var(--spruce);color:var(--on-green)}
+.ck[aria-checked="true"] .t{color:var(--ink-3)}
+.stepper{display:grid;grid-template-columns:48px minmax(72px,auto) 48px;align-items:center;gap:6px}
+.stepper button{height:48px;border-radius:12px;background:var(--deck-2);border:1px solid var(--rule);font:700 26px/1 var(--display);display:grid;place-items:center}
+.stepper output{font:700 24px/1 var(--display);text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
+.rows{display:flex;flex-direction:column}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--rule)}
+.row:first-child{border-top:0;padding-top:0}
+.row:last-child{padding-bottom:0}
+.row-l{min-width:0}
+.row-k{font-weight:700}
+.row-h{display:block;font-size:13px;color:var(--ink-3)}
+
+/* home */
+.topline{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:28px}
+.sync{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-3);white-space:nowrap}
+.sync::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ink-3)}
+.sync[data-s="on"]::before{background:var(--spruce)}
+.sync[data-s="slow"]::before{background:var(--amber)}
+.hero{position:relative;overflow:hidden;background:linear-gradient(165deg,var(--deck-2),var(--deck) 72%);border:1px solid var(--rule);border-radius:var(--r3);padding:18px 18px 16px;display:flex;flex-direction:column;gap:10px}
+.hero h1{font-size:44px;line-height:.95}
+.hero[data-t="4x4"] h1{color:var(--flag)}
+.hero[data-t="z2"] h1{color:var(--spruce)}
+.hero .lead{font-size:17px;color:var(--ink-2);max-width:40ch}
+.hero .btn-row{margin-top:6px}
+.hero-pf{margin-top:4px;display:flex;flex-direction:column;gap:6px}
+.badge{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;padding:5px 10px;border-radius:99px;background:color-mix(in srgb,var(--spruce) 22%,transparent);color:var(--spruce);font:700 14px/1 var(--body)}
+.runbar{display:flex;align-items:center;gap:10px;min-height:52px;padding:8px 14px;border-radius:14px;background:var(--flag-btn);color:var(--on-red);text-decoration:none;font-weight:700}
+.runbar .rb-t{flex:1;min-width:0;font-variant-numeric:tabular-nums}
+.runbar .rb-dot{width:10px;height:10px;border-radius:50%;background:var(--on-red);animation:blink 1.2s ease-in-out infinite}
+@keyframes blink{50%{opacity:.25}}
+.week{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.day{display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 0 7px;border-radius:12px;background:var(--deck);border:1px solid var(--rule);min-width:0}
+.day .dn{font:700 11px/1 var(--body);color:var(--ink-3);letter-spacing:.08em;text-transform:uppercase}
+.day .dt{font:700 16px/1 var(--display);white-space:nowrap}
+.day[data-t="4x4"] .dt{color:var(--flag)}
+.day[data-t="z2"] .dt{color:var(--spruce)}
+.day[data-t="kraft"] .dt{color:var(--ink-2)}
+.day[data-t="frei"] .dt{color:var(--ink-3)}
+.day.today{border-color:var(--ink);background:var(--deck-2)}
+.dm{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--deck-3)}
+.dm svg{width:14px;height:14px}
+.dm.done{border:0;background:var(--spruce);color:var(--on-green)}
+.dm.extra{border:0;background:var(--glacier);color:var(--on-light)}
+.dm.na{border-color:transparent}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.kpis.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.kpi{background:var(--deck);border:1px solid var(--rule);border-radius:14px;padding:10px 12px 11px;min-width:0;display:flex;flex-direction:column;gap:4px}
+.kpi .k{font:700 11px/1.2 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.kpi .v{font:700 27px/1 var(--display);font-variant-numeric:tabular-nums;white-space:nowrap}
+.kpi .v small{font:600 15px/1 var(--display);color:var(--ink-2);margin-left:2px}
+.mbar{height:5px;border-radius:99px;background:var(--deck-3);overflow:hidden;margin-top:4px}
+.mbar i{display:block;height:100%;border-radius:inherit;background:var(--mc,var(--glacier))}
+.modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.mode{display:flex;flex-direction:column;gap:6px;background:var(--deck);border:1px solid var(--rule);border-radius:var(--r2);padding:14px 14px 12px;min-width:0;width:100%}
+.mode .mk{font:700 30px/1 var(--display)}
+.mode .small{flex:1}
+.mode[data-m="4x4"] .mk{color:var(--flag)}
+.mode[data-m="z2"] .mk{color:var(--spruce)}
+.mode .go{display:flex;align-items:center;justify-content:space-between;font-weight:700;color:var(--ink)}
+.mode .go svg{width:20px;height:20px}
+.zbar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+.zseg{border-radius:8px;padding:7px 6px 6px;background:color-mix(in srgb,var(--zc) 16%,var(--deck));border-top:3px solid var(--zc);min-width:0}
+.zseg .zn{display:block;font:700 12px/1 var(--display);color:var(--zc);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;overflow:hidden}
+.zseg .zr{display:block;font:700 22px/1.05 var(--display);font-variant-numeric:tabular-nums;margin-top:3px}
+.zseg .zt{display:block;font:600 12px/1.2 var(--body);color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* heart rate source panel */
+.hrp{background:var(--deck);border:1px solid var(--rule);border-radius:var(--r2);padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.hrp[data-s="live"]{border-color:color-mix(in srgb,var(--spruce) 60%,var(--rule))}
+.hrp[data-s="lost"],.hrp[data-s="error"]{border-color:var(--amber)}
+.hrp-h{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.hrp-t{display:flex;align-items:center;gap:8px;font-weight:700;min-width:0}
+.hrp-t .dot{flex:none;width:10px;height:10px;border-radius:50%;background:var(--ink-3)}
+.hrp[data-s="live"] .dot{background:var(--spruce);box-shadow:0 0 0 4px color-mix(in srgb,var(--spruce) 25%,transparent)}
+.hrp[data-s="connecting"] .dot,.hrp[data-s="lost"] .dot{background:var(--amber)}
+.hrp-b{font:800 30px/1 var(--display);font-variant-numeric:tabular-nums;white-space:nowrap}
+.hrp-b small{font:700 13px/1 var(--body);color:var(--ink-3);margin-left:3px}
+.hrp p{color:var(--ink-2);font-size:15px;line-height:1.4}
+.hrp ol{margin:0;padding-left:20px;color:var(--ink-2);font-size:15px;line-height:1.45;display:flex;flex-direction:column;gap:4px}
+
+/* profile + charts */
+.profile{display:block;width:100%;height:56px}
+.profile rect.todo{opacity:.28}
+.profile rect.done{opacity:.55}
+.profile .play{stroke:var(--ink);stroke-width:2.5}
+.profile .mk{stroke:var(--ink-3);stroke-width:1;stroke-dasharray:3 3}
+.pf-l{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--ink-3);margin-top:4px}
+.pf-l span:last-child{text-align:right}
+.chart{display:block;width:100%;height:auto}
+.chart .ax{fill:var(--ink-3);font:600 11px var(--body)}
+.chart .lb{fill:var(--ink-2);font:700 12px var(--body)}
+.chart .gl{stroke:var(--rule);stroke-width:1}
+.chart .tl{stroke:var(--amber);stroke-width:1.5;stroke-dasharray:5 4}
+.chart .z5l{stroke:var(--flag);stroke-width:1.2;stroke-dasharray:4 4}
+.chart .band{fill:var(--spruce);opacity:.13}
+.chart .aim{fill:var(--spruce);opacity:.22}
+.chart .tband{fill:var(--flag);opacity:.16}
+.chart .wk{fill:var(--flag);opacity:.08}
+.chart .ln{fill:none;stroke:var(--glacier);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
+.chart .ln.thin{stroke-width:2}
+.chart .pt{fill:var(--night);stroke:var(--glacier);stroke-width:2.5}
+.chart .pt.last{fill:var(--glacier)}
+.chart .bar-z2{fill:var(--spruce)}
+.chart .bar-now{fill:var(--glacier)}
+
+/* live */
+.live{display:flex;flex-direction:column;gap:10px}
+.lv-top{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:46px}
+.lv-title{display:flex;flex-direction:column;gap:3px;min-width:0}
+.lv-mode{font:700 12px/1.1 var(--body);letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lv-mode #lv-rem{color:var(--ink-2)}
+.lv-step{font:700 22px/1.05 var(--display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lv-acts{display:flex;align-items:center;gap:6px;flex:none}
+.icon{width:46px;height:46px;display:grid;place-items:center;border-radius:12px;background:var(--deck);border:1px solid var(--rule);color:var(--ink)}
+.icon svg{width:22px;height:22px}
+.notice{width:100%;min-height:48px;padding:8px 14px;border-radius:12px;background:var(--amber);color:var(--on-light);font-weight:700;text-align:center}
+.phase{--pc:var(--fjord);border-radius:var(--r3);padding:12px 18px 14px;background:linear-gradient(180deg,color-mix(in srgb,var(--pc) 24%,var(--deck)) 0%,var(--deck) 88%);border:1.5px solid color-mix(in srgb,var(--pc) 55%,transparent)}
+.phase[data-type="work"]{--pc:var(--flag)}
+.phase[data-type="rec"]{--pc:var(--glacier)}
+.phase[data-type="pick"]{--pc:var(--amber)}
+.phase[data-type="z2"],.phase[data-type="z2in"]{--pc:var(--spruce)}
+.ph-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.ph-name{font:800 27px/1 var(--display);letter-spacing:.05em;text-transform:uppercase;color:var(--pc);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ph-of{font:600 16px/1 var(--display);color:var(--ink-2);white-space:nowrap;font-variant-numeric:tabular-nums}
+.clock{font:700 clamp(88px,28vw,168px)/.92 var(--display);display:flex;justify-content:center;margin:6px 0 10px;color:var(--ink)}
+body.has-hr .clock{font-size:clamp(78px,24vw,150px)}
+.clock .d{display:inline-block;min-width:.5em;text-align:center}
+.clock .c{display:inline-block;min-width:.25em;text-align:center;opacity:.75;transform:translateY(-.04em)}
+.phase.paused .clock{opacity:.4}
+.phase.ending{animation:edge 1s ease-in-out infinite}
+@keyframes edge{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 0 5px color-mix(in srgb,var(--pc) 55%,transparent)}}
+.bar{position:relative;height:10px;border-radius:99px;background:color-mix(in srgb,var(--pc) 16%,var(--night))}
+.bar>i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--pc);border-radius:inherit}
+.bar .tk{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:var(--ink);opacity:.55;border-radius:2px}
+.targets{display:grid;grid-template-columns:auto 1fr;gap:6px 22px;margin-top:12px;align-items:end}
+.tg{display:flex;flex-direction:column;gap:3px;min-width:0}
+.tg .k{font:700 11px/1.2 var(--body);letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3)}
+.tg .v{font:700 30px/1 var(--display);font-variant-numeric:tabular-nums;white-space:nowrap}
+.hrrow{--hc:var(--ink);display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center;background:var(--deck);border:1.5px solid color-mix(in srgb,var(--hc) 45%,var(--rule));border-radius:var(--r2);padding:10px 14px}
+.hrbig{display:flex;align-items:baseline;gap:5px}
+.hrbig .n{font:800 54px/.9 var(--display);font-variant-numeric:tabular-nums;color:var(--hc);min-width:2.1ch;text-align:right}
+.hrbig .u{font:700 13px/1 var(--body);color:var(--ink-3)}
+.hrr{display:flex;flex-direction:column;gap:7px;min-width:0}
+.hrr-t{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--ink-2);white-space:nowrap}
+.hrr-t b{color:var(--hc)}
+.gauge{position:relative;height:12px;border-radius:99px;overflow:visible}
+.gauge .gt{position:absolute;inset:0;border-radius:99px;opacity:.55}
+.gauge .gb{position:absolute;top:-4px;bottom:-4px;border:2px solid var(--ink);border-radius:6px}
+.gauge .gm{position:absolute;top:-6px;bottom:-6px;width:4px;margin-left:-2px;border-radius:3px;background:var(--ink);box-shadow:0 0 0 2px var(--night)}
+.coach{font-size:19px;line-height:1.36;background:var(--deck);border:1px solid var(--rule);border-radius:var(--r2);padding:12px 14px;min-height:4.2em}
+.coach b{color:var(--ink);background:color-mix(in srgb,var(--glacier) 22%,transparent);padding:0 4px;border-radius:5px;white-space:nowrap}
+.speed{display:grid;grid-template-columns:76px minmax(0,1fr) 76px;gap:10px;align-items:stretch}
+.speed>button{min-height:68px;border-radius:var(--r2);background:var(--deck-2);border:1px solid var(--rule);font:700 24px/1 var(--display);text-align:center}
+.speed .val{display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--deck);border:1px solid var(--rule);border-radius:var(--r2);min-width:0;padding:6px 4px;transition:background .3s}
+.speed .val.flash{background:color-mix(in srgb,var(--glacier) 28%,var(--deck))}
+.speed .sv{font:700 44px/1 var(--display);font-variant-numeric:tabular-nums}
+.speed .su{font-size:12px;color:var(--ink-3);text-align:center}
+.z2b{display:flex;flex-direction:column;gap:10px}
+.z2-next{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--deck);border:1px solid var(--rule);border-radius:14px;padding:10px 14px}
+.z2-next .v{font:700 26px/1 var(--display);font-variant-numeric:tabular-nums}
+.ctrl{display:grid;grid-template-columns:72px minmax(0,1fr) 72px;gap:10px}
+.ctrl>button{min-height:62px;border-radius:var(--r2);background:var(--deck-2);border:1px solid var(--rule);display:flex;align-items:center;justify-content:center;gap:8px;font:700 20px/1 var(--body)}
+.ctrl>button svg{width:26px;height:26px}
+.ctrl .pp{background:var(--ink);color:var(--on-light);border-color:var(--ink)}
+.ctrl .pp.paused{background:var(--spruce);color:var(--on-green);border-color:var(--spruce)}
+.ctrl2{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.btn.warnb{background:transparent;border-color:var(--flag);color:var(--flag)}
+.lv-stats{display:flex;justify-content:space-between;gap:10px;font-size:14px;color:var(--ink-2);font-variant-numeric:tabular-nums;flex-wrap:wrap}
+.lv-stats b{color:var(--ink);font:700 17px/1 var(--display)}
+.wake{font-size:13px;color:var(--ink-3);text-align:center}
+.wake[data-s="denied"],.wake[data-s="unsupported"]{color:var(--amber)}
+
+/* sheet, toast */
+.sheet-back{position:fixed;inset:0;z-index:40;background:var(--shade)}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;max-height:84vh;overflow-y:auto;background:var(--deck);border-top:1px solid var(--rule);border-radius:var(--r3) var(--r3) 0 0;box-shadow:0 -12px 40px var(--shadow);padding-top:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.sheet-in{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.sh-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sh-text{color:var(--ink-2)}
+.sh-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+.sh-actions.col{grid-template-columns:1fr}
+.hr-step{display:grid;grid-template-columns:76px minmax(0,1fr) 76px;gap:10px;align-items:center}
+.hr-val{font:800 66px/1 var(--display);text-align:center;font-variant-numeric:tabular-nums}
+.stp{min-height:66px;border-radius:var(--r2);background:var(--deck-2);border:1px solid var(--rule);font:700 32px/1 var(--display);text-align:center}
+.sh-label{font:700 12px/1.2 var(--body);letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);margin-top:2px}
+textarea{width:100%;min-height:96px;resize:vertical;background:var(--deck);color:var(--ink);border:1px solid var(--rule);border-radius:12px;padding:10px 12px;font:400 16px/1.4 var(--body)}
+textarea:focus{outline:2px solid var(--glacier);outline-offset:1px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:60;width:max-content;max-width:min(92vw,520px);background:var(--ink);color:var(--on-light);border-radius:14px;padding:12px 16px;font-weight:700;box-shadow:0 8px 30px var(--shadow)}
+body.is-live .toast{bottom:auto;top:calc(10px + env(safe-area-inset-top,0px))}
+
+/* summary + history */
+.score{display:grid;grid-template-columns:112px minmax(0,1fr);gap:16px;align-items:center}
+.ring{width:112px;height:112px;display:block}
+.ring .bg{fill:none;stroke:var(--deck-3);stroke-width:10}
+.ring .fg{fill:none;stroke-width:10;stroke-linecap:round}
+.ring .rv{fill:var(--ink);font:700 36px var(--display)}
+.ring .ru{fill:var(--ink-3);font:700 11px var(--body);letter-spacing:.08em}
+.parts{display:flex;flex-direction:column;gap:9px;min-width:0}
+.part .pk{display:flex;justify-content:space-between;gap:8px;font-size:14px;color:var(--ink-2)}
+.part .pk b{color:var(--ink);font-variant-numeric:tabular-nums}
+.pb{height:6px;border-radius:99px;background:var(--deck-3);overflow:hidden;margin-top:4px}
+.pb i{display:block;height:100%;border-radius:inherit;background:var(--glacier)}
+.ivt{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.ivt th{font:700 11px/1.2 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);text-align:left;padding:0 6px 6px}
+.ivt td{padding:10px 6px;border-top:1px solid var(--rule);font:600 19px/1.2 var(--display);vertical-align:middle}
+.ivt tbody tr{cursor:pointer}
+.ivt tbody tr:active td{background:var(--deck-2)}
+.ivt .sub{display:block;font:400 12px/1.2 var(--body);color:var(--ink-3)}
+.pill{display:inline-block;min-width:48px;text-align:center;padding:4px 8px;border-radius:8px;font:700 19px/1 var(--display)}
+.pill.ok{background:color-mix(in srgb,var(--spruce) 24%,transparent);color:var(--spruce)}
+.pill.lo{background:color-mix(in srgb,var(--glacier) 22%,transparent);color:var(--glacier)}
+.pill.hi{background:color-mix(in srgb,var(--amber) 24%,transparent);color:var(--amber)}
+.pill.miss{border:1.5px dashed var(--ink-3);color:var(--ink-2);font:700 13px/1 var(--body);padding:6px 8px}
+.next{border-color:var(--glacier)}
+.next .nv{font:700 40px/1 var(--display);font-variant-numeric:tabular-nums}
+.hist{display:grid;grid-template-columns:62px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;padding:12px;border-radius:14px;background:var(--deck);border:1px solid var(--rule)}
+.hb{font:800 16px/1 var(--display);text-transform:uppercase;letter-spacing:.04em;text-align:center;padding:8px 0;border-radius:10px}
+.hb.r{background:color-mix(in srgb,var(--flag) 20%,transparent);color:var(--flag)}
+.hb.g{background:color-mix(in srgb,var(--spruce) 20%,transparent);color:var(--spruce)}
+.hm{display:flex;flex-direction:column;gap:3px;min-width:0}
+.hd{font-weight:700}
+.hl{font-size:14px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.hs{font:700 26px/1 var(--display);font-variant-numeric:tabular-nums;min-width:40px;text-align:right}
+.hs.s-hi{color:var(--spruce)}
+.hs.s-mid{color:var(--amber)}
+.hs.s-lo{color:var(--flag)}
+.hs.s-na{color:var(--ink-3)}
+.list{display:flex;flex-direction:column;gap:8px}
+.empty{text-align:center;padding:26px 16px;color:var(--ink-2);border:1.5px dashed var(--rule);border-radius:var(--r2);display:flex;flex-direction:column;gap:8px;align-items:center}
+.empty h3{color:var(--ink)}
+
+/* learn */
+.k-sec{display:flex;flex-direction:column;gap:10px}
+.k-sec p,.k-sec li{color:var(--ink-2);font-size:16px;line-height:1.5}
+.k-sec strong{color:var(--ink)}
+.k-sec ol,.k-sec ul{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--rule);border-radius:var(--r2)}
+.tbl{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.tbl th{font:700 11px/1.2 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);text-align:left;padding:10px 10px 8px;background:var(--deck)}
+.tbl td{padding:9px 10px;border-top:1px solid var(--rule);font-size:15px;vertical-align:top}
+.tbl td.n{font:700 17px/1.2 var(--display);white-space:nowrap}
+.tbl td .sub{display:block;font:400 12px/1.3 var(--body);color:var(--ink-3);white-space:normal}
+.zdot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--zc);margin-right:6px}
+.steps{display:flex;flex-direction:column;border:1px solid var(--rule);border-radius:var(--r2);overflow:hidden;background:var(--deck)}
+.stp-r{display:grid;grid-template-columns:78px minmax(0,1fr);gap:12px;padding:11px 14px;border-top:1px solid var(--rule)}
+.stp-r:first-child{border-top:0}
+.stp-r .sm{font:700 18px/1.25 var(--display);font-variant-numeric:tabular-nums;color:var(--fjord)}
+.stp-r[data-t="work"] .sm{color:var(--flag)}
+.stp-r[data-t="rec"] .sm{color:var(--glacier)}
+.stp-r[data-t="pick"] .sm{color:var(--amber)}
+.stp-r .sd{color:var(--ink-2);font-size:15px;line-height:1.4;min-width:0}
+.stp-r .sd b{color:var(--ink)}
+.stp-r .sd span{display:block;font-size:14px;color:var(--ink-3)}
+.plan{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.pd{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 0;border-radius:12px;background:var(--deck-2);border:1px solid var(--rule);min-width:0}
+.pd .dn{font:700 11px/1 var(--body);color:var(--ink-3);letter-spacing:.08em;text-transform:uppercase}
+.pd .dt{font:700 16px/1 var(--display);white-space:nowrap}
+.pd[data-t="4x4"] .dt{color:var(--flag)}
+.pd[data-t="z2"] .dt{color:var(--spruce)}
+.pd[data-t="frei"] .dt{color:var(--ink-3)}
+.vstat{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-3)}
+.vstat::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ink-3)}
+.vstat[data-s="ready"]::before{background:var(--spruce)}
+.vstat[data-s="loading"]::before{background:var(--amber)}
+.vstat[data-s="failed"]::before{background:var(--flag)}
+@media (prefers-reduced-motion:reduce){
+  .phase.ending{animation:none;box-shadow:0 0 0 4px var(--pc)}
+  .runbar .rb-dot{animation:none}
+  .sw,.sw::after,.speed .val{transition:none}
+}
+</style><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+
+<main id="view" class="wrap" tabindex="-1"></main>
+<nav class="tabs" aria-label="Sections">
+  <div class="tabs-in">
+    <a class="tab" href="#today" data-r="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"/><path d="M5 20 19 9"/><path d="M15 9h4v4"/></svg>Today</a>
+    <a class="tab" href="#history" data-r="history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="11" width="3" height="5"/><rect x="12" y="8" width="3" height="8"/><rect x="17" y="13" width="3" height="3"/></svg>History</a>
+    <a class="tab" href="#learn" data-r="learn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l2-5 4 10 2-5h6"/></svg>Learn</a>
+    <a class="tab" href="#setup" data-r="setup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10"/><path d="M18 7h2"/><circle cx="16" cy="7" r="2"/><path d="M4 17h2"/><path d="M10 17h10"/><circle cx="8" cy="17" r="2"/></svg>Setup</a>
+  </div>
+</nav>
+<div id="sheet-back" class="sheet-back" data-act="sheetBack" hidden></div>
+<div id="sheet" class="sheet" role="dialog" aria-labelledby="sheet-title" hidden></div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ================= build-time data ================= */
+const VOICE_DATA = {"text":{"test":"Sound check. This is how I will sound during your workout.","paused":"Paused.","resume":"Let's go.","saved":"Session saved.","demo":"Test run. Ten times faster than real time.","w_start":"Warm-up. Easy walking for seven minutes.","w_rewarm":"Warm up again. Two easy minutes.","w_easy":"Back to easy walking.","pickup":"Pickup. Thirty seconds at interval speed.","prep":"Ten seconds. Speed up now.","int1":"Interval one.","int2":"Interval two.","int3":"Interval three.","int4":"Interval four. The last one.","ignore":"Ignore your heart rate until minute two.","m2":"Minute two.","m3":"Minute three.","last":"Last minute.","s30":"Thirty seconds.","check":"Check your heart rate.","high3":"Too high. Slow down by point three.","low3":"A bit low. Speed up by point three.","track":"On track. Hold this pace.","ease3":"Easing off. Down by point three.","push3":"Push. Up by point three.","hold_end":"Hold it to the end.","yellow_hold":"Steady to the end. No push today.","danger5":"Heart rate very high. Slow down by point five.","int_done":"Interval done.","rec":"Recovery. Keep walking and drink.","rec_short":"Recovery.","next_int":"Next interval.","rec_slow":"Slow recovery. Breathe deep and slow.","bail":"Drop to easy walking. Next interval point five slower.","cool":"Cool-down. Bring the incline down step by step.","cool_wait":"Keep walking until your heart rate is below one ten.","cool_ok":"Heart rate below one ten. You can step off.","done4":"Done. Drink first, then sauna.","z2_start":"Zone two. Easy start for five minutes.","z2_main":"Main set. Stay in zone two. You should still be able to talk.","z2_main_live":"Main set. Just walk. I'll tell you when to change speed.","z2_check":"Heart rate check.","z2_above":"Above zone two. Slow down by point two.","z2_high":"A bit high. Slow down by point one.","z2_low":"A bit low. Speed up by point one.","z2_under":"Below zone two. Speed up by point two.","z2_good":"Right in the zone.","sip":"Take a sip.","half":"Halfway.","left10":"Ten minutes left.","left5":"Five minutes left.","done_z2":"Done. Great walk.","hr_on":"Heart rate connected.","hr_lost":"Heart rate signal lost. Switching to manual.","hr_back":"Heart rate is back."},"maps":{"heart":{"test":[0.22,2.86],"paused":[3.3,0.64],"resume":[4.16,0.81],"saved":[5.19,1.01],"demo":[6.42,2.48],"w_start":[9.12,2.28],"w_rewarm":[11.62,2.02],"w_easy":[13.86,1.32],"pickup":[15.4,2.26],"prep":[17.88,1.66],"int1":[19.76,0.86],"int2":[20.84,0.9],"int3":[21.96,0.96],"int4":[23.14,1.71],"ignore":[25.07,2.01],"m2":[27.3,0.84],"m3":[28.36,0.85],"last":[29.43,0.9],"s30":[30.55,0.95],"check":[31.72,1.1161],"high3":[33.0561,1.86],"low3":[35.1361,1.89],"track":[37.2461,1.56],"ease3":[39.0261,1.7],"push3":[40.9461,1.41],"hold_end":[42.5761,1.08],"yellow_hold":[43.8761,2.2],"danger5":[46.2961,2.74],"int_done":[49.2561,0.88],"rec":[50.3561,1.92],"rec_short":[52.4961,0.78],"next_int":[53.4961,0.97],"rec_slow":[54.6861,2.11],"bail":[57.0161,3.24],"cool":[60.4761,2.42],"cool_wait":[63.1161,2.83],"cool_ok":[66.1661,2.65],"done4":[69.0361,1.64],"z2_start":[70.8961,2.22],"z2_main":[73.3361,3.41],"z2_main_live":[76.9661,3.01],"z2_check":[80.1961,1.07],"z2_above":[81.4861,2.2],"z2_high":[83.9061,1.98],"z2_low":[86.1061,1.87],"z2_under":[88.1961,2.22],"z2_good":[90.6361,0.98],"sip":[91.8361,0.84],"half":[92.8961,0.74],"left10":[93.8561,1.1],"left5":[95.1761,1.18],"done_z2":[96.5761,1.11],"hr_on":[97.9061,1.25],"hr_lost":[99.3761,2.69],"hr_back":[102.2861,1.0981],"v30":[103.6042,1.07],"v31":[104.8942,1.01],"v32":[106.1242,1.0],"v33":[107.3442,1.03],"v34":[108.5942,1.06],"v35":[109.8742,1.06],"v36":[111.1542,1.07],"v37":[112.4442,1.06],"v38":[113.7242,0.96],"v39":[114.9042,1.03],"v40":[116.1542,1.0987],"v41":[117.4729,0.98],"v42":[118.6729,1.0],"v43":[119.8929,1.02],"v44":[121.1329,1.03],"v45":[122.3829,1.05],"v46":[123.6529,1.09],"v47":[124.9629,1.09],"v48":[126.2729,0.97],"v49":[127.4629,1.03],"v50":[128.7129,1.13],"v51":[130.0629,1.05],"v52":[131.3329,1.07],"v53":[132.6229,1.06],"v54":[133.9029,1.04],"v55":[135.1629,1.07],"v56":[136.4529,1.11],"v57":[137.7829,1.18],"v58":[139.1829,1.01],"v59":[140.4129,1.03],"v60":[141.6629,1.1],"v61":[142.9829,1.03],"v62":[144.2329,1.04],"v63":[145.4929,1.07],"v64":[146.7829,1.08],"v65":[148.0829,1.09],"v66":[149.3929,1.15],"v67":[150.7629,1.13],"v68":[152.1129,1.01],"v69":[153.3429,1.06],"v70":[154.6229,1.17],"v71":[156.0129,1.12],"v72":[157.3529,1.13],"v73":[158.7029,1.16],"v74":[160.0829,1.17],"v75":[161.4729,1.19],"v76":[162.8829,1.22],"v77":[164.3229,1.22],"v78":[165.7629,1.0868],"v79":[167.0697,1.13],"v80":[168.4197,0.97],"v81":[169.6097,0.91],"v82":[170.7397,0.94],"v83":[171.8997,0.95],"v84":[173.0697,0.98],"v85":[174.2697,1.01],"v86":[175.4997,1.0188],"v87":[176.7385,1.02],"v88":[177.9785,0.9],"v89":[179.0985,0.94],"h95":[180.2585,0.95],"h96":[181.4285,0.94],"h97":[182.5885,0.96],"h98":[183.7685,0.82],"h99":[184.8085,0.86],"h100":[185.8885,0.91],"h101":[187.0185,0.9],"h102":[188.1385,0.89],"h103":[189.2485,0.9],"h104":[190.3685,0.9],"h105":[191.4885,0.92],"h106":[192.6285,0.93],"h107":[193.7785,0.94],"h108":[194.9385,0.88],"h109":[196.0385,0.89],"h110":[197.1485,0.8],"h111":[198.1685,0.88],"h112":[199.2685,0.86],"h113":[200.3485,0.96],"h114":[201.5285,0.99],"h115":[202.7385,0.95],"h116":[203.9085,0.99],"h117":[205.1185,1.07],"h118":[206.4085,0.9],"h119":[207.5285,0.97],"h120":[208.7185,0.86],"h121":[209.7985,1.03],"h122":[211.0485,1.08],"h123":[212.3485,1.07],"h124":[213.6385,1.04],"h125":[214.8985,1.12],"h126":[216.2385,1.14],"h127":[217.5985,1.11],"h128":[218.9285,1.02],"h129":[220.1685,1.02],"h130":[221.4085,0.86],"h131":[222.4885,0.97],"h132":[223.6785,1.02],"h133":[224.9185,1.06],"h134":[226.1985,1.0],"h135":[227.4185,1.08],"h136":[228.7185,1.12],"h137":[230.0585,1.15],"h138":[231.4285,1.03],"h139":[232.6785,1.01],"h140":[233.9085,0.87],"h141":[234.9985,1.01],"h142":[236.2285,1.04],"h143":[237.4885,1.06],"h144":[238.7685,1.04],"h145":[240.0285,1.08],"h146":[241.3285,1.14],"h147":[242.6885,1.11],"h148":[244.0185,1.01],"h149":[245.2485,1.01],"h150":[246.4785,0.91],"h151":[247.6085,0.99],"h152":[248.8185,1.06],"h153":[250.0985,1.1],"h154":[251.4185,1.06],"h155":[252.6985,1.13],"h156":[254.0485,1.18],"h157":[255.4485,1.18],"h158":[256.8485,1.05],"h159":[258.1185,1.03],"h160":[259.3685,0.94],"h161":[260.5285,1.02],"h162":[261.7685,1.08],"h163":[263.0685,1.1],"h164":[264.3885,1.05],"h165":[265.6585,1.14],"h166":[267.0185,1.19],"h167":[268.4285,1.22],"h168":[269.8685,1.04],"h169":[271.1285,1.06],"h170":[272.4085,0.98],"h171":[273.6085,1.2],"h172":[275.0285,1.16],"h173":[276.4085,1.22],"h174":[277.8485,1.17],"h175":[279.2385,1.27],"h176":[280.7285,1.3],"h177":[282.2485,1.33],"h178":[283.7985,1.16],"h179":[285.1785,1.15],"h180":[286.5485,0.8],"h181":[287.5685,0.95],"h182":[288.7385,1.0],"h183":[289.9585,1.01],"h184":[291.1885,1.0],"h185":[292.4085,1.08],"h186":[293.7085,1.05],"h187":[294.9785,1.05],"h188":[296.2485,0.97],"h189":[297.4385,0.97],"h190":[298.6285,0.87],"h191":[299.7185,1.01],"h192":[300.9485,1.03],"h193":[302.1985,1.06],"h194":[303.4785,1.04],"h195":[304.7385,1.13],"h196":[306.0885,1.16],"h197":[307.4685,1.15],"h198":[308.8385,1.03],"h199":[310.0885,1.03],"h200":[311.3385,0.85],"h201":[312.4085,0.91],"h202":[313.5385,0.86],"h203":[314.6185,0.88],"h204":[315.7185,0.86],"h205":[316.7985,0.91]},"michael":{"test":[0.22,3.11],"paused":[3.55,0.7274],"resume":[4.4974,0.89],"saved":[5.6074,1.08],"demo":[6.9074,2.76],"w_start":[9.8874,2.47],"w_rewarm":[12.5774,2.13],"w_easy":[14.9274,1.39],"pickup":[16.5374,2.45],"prep":[19.2074,1.7],"int1":[21.1274,0.94],"int2":[22.2874,1.03],"int3":[23.5374,1.03],"int4":[24.7874,1.87],"ignore":[26.8774,2.21],"m2":[29.3074,0.9],"m3":[30.4274,0.97],"last":[31.6174,1.0088],"s30":[32.8461,1.12],"check":[34.1861,1.2],"high3":[35.6061,1.99],"low3":[37.8161,2.04],"track":[40.0761,1.61],"ease3":[41.9061,1.9],"push3":[44.0261,1.47],"hold_end":[45.7161,1.25],"yellow_hold":[47.1861,2.54],"danger5":[49.9461,3.052],"int_done":[53.2181,1.0],"rec":[54.4381,2.09],"rec_short":[56.7481,0.89],"next_int":[57.8581,1.1],"rec_slow":[59.1781,2.43],"bail":[61.8281,3.49],"cool":[65.5381,2.93],"cool_wait":[68.6881,3.24],"cool_ok":[72.1481,2.94],"done4":[75.3081,1.79],"z2_start":[77.3181,2.41],"z2_main":[79.9481,3.66],"z2_main_live":[83.8281,3.28],"z2_check":[87.3281,1.16],"z2_above":[88.7081,2.3],"z2_high":[91.2281,2.24],"z2_low":[93.6881,2.05],"z2_under":[95.9581,2.32],"z2_good":[98.4981,1.18],"sip":[99.8981,0.9572],"half":[101.0752,0.84],"left10":[102.1352,1.18],"left5":[103.5353,1.25],"done_z2":[105.0053,1.18],"hr_on":[106.4052,1.3],"hr_lost":[107.9253,3.02],"hr_back":[111.1653,1.28],"v30":[112.6653,1.18],"v31":[114.0653,1.16],"v32":[115.4453,1.09],"v33":[116.7553,1.17],"v34":[118.1453,1.14],"v35":[119.5053,1.19],"v36":[120.9153,1.14],"v37":[122.2752,1.18],"v38":[123.6753,1.06],"v39":[124.9553,1.13],"v40":[126.3053,1.24],"v41":[127.7652,1.14],"v42":[129.1252,1.11],"v43":[130.4553,1.15],"v44":[131.8253,1.14],"v45":[133.1852,1.21],"v46":[134.6153,1.16],"v47":[135.9952,1.2],"v48":[137.4152,1.07],"v49":[138.7053,1.15],"v50":[140.0753,1.22],"v51":[141.5153,1.2],"v52":[142.9352,1.17],"v53":[144.3253,1.22],"v54":[145.7653,1.21],"v55":[147.1952,1.24],"v56":[148.6552,1.21],"v57":[150.0853,1.26],"v58":[151.5652,1.14],"v59":[152.9253,1.16],"v60":[154.3053,1.24],"v61":[155.7653,1.13],"v62":[157.1153,1.15],"v63":[158.4853,1.2],"v64":[159.9052,1.15],"v65":[161.2752,1.24],"v66":[162.7353,1.21],"v67":[164.1652,1.21],"v68":[165.5952,1.12],"v69":[166.9352,1.15],"v70":[168.3053,1.28],"v71":[169.8053,1.23],"v72":[171.2552,1.21],"v73":[172.6852,1.28],"v74":[174.1852,1.26],"v75":[175.6652,1.31],"v76":[177.1952,1.24],"v77":[178.6552,1.29],"v78":[180.1652,1.15],"v79":[181.5352,1.22],"v80":[182.9752,1.13],"v81":[184.3253,1.03],"v82":[185.5753,1.02],"v83":[186.8152,1.06],"v84":[188.0952,1.05],"v85":[189.3653,1.13],"v86":[190.7152,1.11],"v87":[192.0453,1.15],"v88":[193.4152,0.98],"v89":[194.6153,1.03],"h95":[195.8653,1.04],"h96":[197.1252,1.02],"h97":[198.3653,1.09],"h98":[199.6753,0.96],"h99":[200.8553,0.98],"h100":[202.0553,1.04],"h101":[203.3152,1.0316],"h102":[204.5668,1.05],"h103":[205.8368,1.06],"h104":[207.1168,1.05],"h105":[208.3868,1.15],"h106":[209.7568,1.07],"h107":[211.0468,1.11],"h108":[212.3768,1.08],"h109":[213.6768,1.12],"h110":[215.0168,0.92],"h111":[216.1568,1.03],"h112":[217.4068,0.9999],"h113":[218.6267,1.15],"h114":[219.9967,1.13],"h115":[221.3467,1.11],"h116":[222.6767,1.16],"h117":[224.0567,1.24],"h118":[225.5168,1.04],"h119":[226.7767,1.1],"h120":[228.0967,1.02],"h121":[229.3367,1.14],"h122":[230.6968,1.25],"h123":[232.1668,1.23],"h124":[233.6167,1.23],"h125":[235.0668,1.3],"h126":[236.5867,1.17],"h127":[237.9768,1.28],"h128":[239.4768,1.11],"h129":[240.8067,1.23],"h130":[242.2568,0.99],"h131":[243.4667,1.15],"h132":[244.8367,1.22],"h133":[246.2767,1.21],"h134":[247.7067,1.18],"h135":[249.1068,1.27],"h136":[250.5967,1.24],"h137":[252.0567,1.29],"h138":[253.5668,1.1],"h139":[254.8868,1.2],"h140":[256.3068,1.01],"h141":[257.5367,1.12],"h142":[258.8768,1.18],"h143":[260.2767,1.19],"h144":[261.6868,1.2],"h145":[263.1067,1.25],"h146":[264.5768,1.21],"h147":[266.0068,1.31],"h148":[267.5367,1.14],"h149":[268.8967,1.16],"h150":[270.2767,1.03],"h151":[271.5267,1.17],"h152":[272.9167,1.24],"h153":[274.3768,1.24],"h154":[275.8367,1.24],"h155":[277.2967,1.3],"h156":[278.8168,1.22],"h157":[280.2568,1.38],"h158":[281.8567,1.16],"h159":[283.2367,1.21],"h160":[284.6667,1.07],"h161":[285.9567,1.21],"h162":[287.3868,1.28],"h163":[288.8868,1.23],"h164":[290.3367,1.24],"h165":[291.7967,1.33],"h166":[293.3467,1.27],"h167":[294.8367,1.33],"h168":[296.3868,1.15],"h169":[297.7568,1.26],"h170":[299.2367,1.07],"h171":[300.5267,1.35],"h172":[302.0967,1.32],"h173":[303.6368,1.32],"h174":[305.1768,1.36],"h175":[306.7568,1.3887],"h176":[308.3654,1.34],"h177":[309.9254,1.44],"h178":[311.5854,1.29],"h179":[313.0954,1.36],"h180":[314.6754,0.9338],"h181":[315.8293,1.1498],"h182":[317.199,1.16],"h183":[318.579,1.2],"h184":[319.999,1.13],"h185":[321.349,1.19],"h186":[322.759,1.16],"h187":[324.139,1.24],"h188":[325.599,1.08],"h189":[326.899,1.16],"h190":[328.279,0.97],"h191":[329.469,1.11],"h192":[330.799,1.15],"h193":[332.169,1.14],"h194":[333.529,1.16],"h195":[334.909,1.23],"h196":[336.359,1.2],"h197":[337.779,1.29],"h198":[339.289,1.08],"h199":[340.589,1.15],"h200":[341.959,0.99],"h201":[343.169,1.03],"h202":[344.419,0.99],"h203":[345.629,1.08],"h204":[346.929,1.01],"h205":[348.159,1.05]}}};
+const APP_URL = "";
+
+/* ================= helpers ================= */
+const LOC = 'en-GB';
+const $ = (s, r = document) => r.querySelector(s);
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const isNum = v => v !== null && v !== undefined && v !== '' && Number.isFinite(Number(v));
+const r1 = v => Math.round(Number(v) * 10) / 10;
+const r2 = v => Math.round(Number(v) * 100) / 100;
+const num = (v, d = 1) => isNum(v) ? Number(v).toLocaleString(LOC, {minimumFractionDigits: d, maximumFractionDigits: d}) : '?';
+const int = v => isNum(v) ? Math.round(Number(v)).toLocaleString(LOC) : '?';
+const sgn = v => (v > 0 ? '+' : v < 0 ? '−' : '') + num(Math.abs(v));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'})[c]);
+const pad = n => String(n).padStart(2, '0');
+const cd = sec => { sec = Math.max(0, Math.ceil(sec - 1e-6)); return pad(Math.floor(sec / 60)) + ':' + pad(sec % 60); };
+const hms = sec => { sec = Math.max(0, Math.round(sec)); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60; return h ? h + ':' + pad(m) + ':' + pad(s) : pad(m) + ':' + pad(s); };
+const uid = () => 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const sleep = ms => new Promise(res => setTimeout(res, ms));
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const dayIdx = d => (d.getDay() + 6) % 7;
+const dateLong = d => d.toLocaleDateString(LOC, {weekday: 'long', day: 'numeric', month: 'long'});
+const dateShort = d => d.toLocaleDateString(LOC, {weekday: 'short', day: 'numeric', month: 'short'});
+const timeOf = d => d.toLocaleTimeString(LOC, {hour: '2-digit', minute: '2-digit'});
+const fmtIncl = v => Number.isInteger(Number(v)) ? String(v) : num(v, 1);
+const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+function weekStart(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - dayIdx(x)); return x; }
+function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+function isoWeek(d) { const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const dn = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - dn); const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1)); return Math.ceil(((t - y0) / 864e5 + 1) / 7); }
+
+const LS = {
+  get(k, fb = null) { try { const v = localStorage.getItem(k); return v == null ? fb : JSON.parse(v); } catch (e) { return fb; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+};
+const K = {settings: 'c44.settings', sessions: 'c44.sessions', active: 'c44.active'};
+
+/* where the page runs: claude.ai frame (no Bluetooth) or its own tab */
+const ENV = (() => {
+  let framed = true;
+  try { framed = window.top !== window.self; } catch (e) { framed = true; }
+  const btApi = typeof navigator !== 'undefined' && !!navigator.bluetooth;
+  let btPolicy = true;
+  try {
+    const fp = document.permissionsPolicy || document.featurePolicy;
+    const known = fp && typeof fp.features === 'function' ? fp.features().includes('bluetooth') : true;
+    if (fp && known && typeof fp.allowsFeature === 'function') btPolicy = fp.allowsFeature('bluetooth');
+  } catch (e) {}
+  return {framed, btApi, btPolicy, bt: btApi && btPolicy};
+})();
+
+const ICON = {
+  pause: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>',
+  play: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.9l10-6.5a1 1 0 0 0 0-1.7l-10-6.5A1 1 0 0 0 8 5.5Z"/></svg>',
+  skip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 6 6 6-6 6"/><path d="m13 6 6 6-6 6"/></svg>',
+  back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 6-6 6 6 6"/><path d="m11 6-6 6 6 6"/></svg>',
+  close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
+  arrow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>',
+  heart: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 8 3.3 4.5 6.8 4.5c2 0 3.6 1.1 5.2 3 1.6-1.9 3.2-3 5.2-3 3.5 0 5.4 3.5 4.1 6.8-1.8 4.6-9.3 9.2-9.3 9.2Z"/></svg>',
+  sndAll: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10H4Z" fill="currentColor"/><path d="M16 9.5a3.5 3.5 0 0 1 0 5"/><path d="M18.5 7a7 7 0 0 1 0 10"/></svg>',
+  sndTones: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10H4Z" fill="currentColor"/><path d="M16 9.5a3.5 3.5 0 0 1 0 5"/></svg>',
+  sndOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10H4Z" fill="currentColor"/><path d="m16 9 5 6M21 9l-5 6"/></svg>'
+};
+
+/* ================= settings + zones ================= */
+const PLAN_TYPES = ['kraft', '4x4', 'z2', 'frei'];
+const PLAN_SHORT = {kraft: 'Lift', '4x4': '4×4', z2: 'Z2', frei: 'Rest'};
+const PLAN_LONG = {kraft: 'Strength', '4x4': 'Norwegian 4×4', z2: 'Zone 2', frei: 'Rest day'};
+const VOICE_NAMES = {heart: 'Heart', michael: 'Michael', phone: 'Phone voice'};
+/*DEF_START*/
+const DEFAULTS = {
+  hrMax: 190, hrRest: 60, incline: 15,
+  speed4x4: 6.0, warmSpeed: 4.2, recSpeed: 3.5,
+  z2Speed: 4.2, z2Minutes: 90, vestKg: 0, checkEvery: 10, z2Week: 180,
+  weight: 75, sound: true, voice: true, vibrate: true, voiceName: 'heart', z2Quiet: false, btName: '',
+  plan: ['kraft', '4x4', 'kraft', '4x4', 'kraft', 'z2', 'z2'],
+  updatedAt: 0
+};
+/*DEF_END*/
+function sanitizeSettings(o) {
+  o = o && typeof o === 'object' ? o : {};
+  const d = DEFAULTS, s = {};
+  const n = (k, lo, hi, step) => { let v = Number(o[k]); if (!Number.isFinite(v)) v = d[k]; v = clamp(v, lo, hi); return step ? Math.round(v / step) * step : v; };
+  s.hrMax = n('hrMax', 150, 220, 1);
+  s.hrRest = n('hrRest', 30, 100, 1);
+  if (s.hrRest > s.hrMax - 50) s.hrRest = s.hrMax - 50;
+  s.incline = n('incline', 0, 20, 0.5);
+  s.speed4x4 = r1(n('speed4x4', 2, 16));
+  s.warmSpeed = r1(n('warmSpeed', 1, 10));
+  s.recSpeed = r1(n('recSpeed', 1, 10));
+  s.z2Speed = r1(n('z2Speed', 1, 12));
+  s.z2Minutes = n('z2Minutes', 20, 180, 5);
+  s.vestKg = n('vestKg', 0, 30, 2.5);
+  s.checkEvery = n('checkEvery', 5, 30, 5);
+  s.z2Week = n('z2Week', 0, 900, 10);
+  s.weight = n('weight', 40, 200, 0.5);
+  for (const k of ['sound', 'voice', 'vibrate', 'z2Quiet']) s[k] = typeof o[k] === 'boolean' ? o[k] : d[k];
+  s.voiceName = ['heart', 'michael', 'phone'].includes(o.voiceName) ? o.voiceName : d.voiceName;
+  s.btName = typeof o.btName === 'string' ? o.btName.slice(0, 60) : '';
+  s.plan = Array.isArray(o.plan) && o.plan.length === 7 && o.plan.every(p => PLAN_TYPES.includes(p)) ? o.plan.slice() : d.plan.slice();
+  s.updatedAt = isNum(o.updatedAt) ? Number(o.updatedAt) : 0;
+  return s;
+}
+function zonesOf(st) {
+  const R = st.hrMax - st.hrRest, at = p => Math.round(st.hrRest + p * R);
+  const s = [0.5, 0.6, 0.7, 0.8, 0.9].map(at);
+  return {
+    max: st.hrMax, rest: st.hrRest, s,
+    list: [1, 2, 3, 4, 5].map(n => ({n, lo: s[n - 1], hi: n < 5 ? s[n] - 1 : st.hrMax})),
+    z2lo: s[1], z2hi: s[2] - 1, aimLo: at(0.635), aimHi: at(0.67),
+    z5: s[4], endLo: at(0.915), endHi: at(0.95), yLo: at(0.88), yHi: at(0.915),
+    recTo: s[1], coolTo: 110
+  };
+}
+function zoneOf(Z, bpm) { if (!isNum(bpm)) return 0; let z = 0; for (const x of Z.list) if (bpm >= x.lo) z = x.n; return z; }
+function target4x4(Z, rec) {
+  const lo = rec === 'gelb' ? Z.yLo : Z.endLo, hi = rec === 'gelb' ? Z.yHi : Z.endHi;
+  return {lo, hi, m2Max: hi - 3, m2Min: lo - 12, m3Min: lo - 2, early: hi + 1, danger: Z.max - 3};
+}
+
+/* ================= protocol builders ================= */
+function build4x4(st, o) {
+  const v = r1(o.startSpeed), w = st.warmSpeed, r = st.recSpeed, inc = o.incline ?? st.incline;
+  const P = [
+    {key: 'warm', type: 'warm', label: 'Warm-up', dur: 420, speed: w, incl: inc},
+    {key: 'pick1', type: 'pick', label: 'Pickup 1', dur: 30, speed: v, incl: inc},
+    {key: 'easy1', type: 'warm', label: 'Easy', dur: 60, speed: w, incl: inc},
+    {key: 'pick2', type: 'pick', label: 'Pickup 2', dur: 30, speed: v, incl: inc},
+    {key: 'easy2', type: 'warm', label: 'Easy', dur: 60, speed: w, incl: inc}
+  ];
+  for (let i = 1; i <= 4; i++) {
+    P.push({key: 'int' + i, type: 'work', n: i, label: 'Interval ' + i, dur: 240, speed: v, incl: inc});
+    if (i < 4) P.push({key: 'rec' + i, type: 'rec', n: i, label: 'Recovery', dur: 180, speed: r, incl: inc});
+  }
+  P.push({key: 'cool', type: 'cool', label: 'Cool-down', dur: 300, speed: r1(Math.max(r, 3.8)), incl: inc / 2});
+  return P;
+}
+function buildZ2(st, o) {
+  const v = r1(o.speed), inc = o.incline ?? st.incline;
+  return [
+    {key: 'z2in', type: 'z2in', label: 'Easy start', dur: 300, speed: r1(Math.max(1, v - 0.3)), incl: inc},
+    {key: 'z2', type: 'z2', label: 'Zone 2', dur: o.minutes * 60 - 300, speed: v, incl: inc}
+  ];
+}
+const PH_H = {warm: .34, pick: .72, work: 1, rec: .24, cool: .2, z2in: .4, z2: .54};
+const PH_C = {warm: 'var(--fjord)', pick: 'var(--amber)', work: 'var(--flag)', rec: 'var(--glacier)', cool: 'var(--fjord)', z2in: 'var(--spruce)', z2: 'var(--spruce)'};
+function profileSVG(phases, o = {}) {
+  const total = phases.reduce((a, p) => a + p.dur, 0) || 1, W = 1000, H = 100, gap = 5;
+  let x = 0;
+  const rects = phases.map((p, i) => {
+    const w = p.dur / total * W, h = Math.max(7, PH_H[p.type] * H);
+    const cls = o.cur == null ? '' : i < o.cur ? 'done' : i === o.cur ? 'cur' : 'todo';
+    const r = `<rect x="${(x + gap / 2).toFixed(1)}" y="${(H - h).toFixed(1)}" width="${Math.max(1.5, w - gap).toFixed(1)}" height="${h.toFixed(1)}" class="${cls}" style="fill:${PH_C[p.type]}"/>`;
+    x += w; return r;
+  }).join('');
+  const marks = (o.marks || []).map(m => `<line x1="${(m * W).toFixed(1)}" x2="${(m * W).toFixed(1)}" y1="0" y2="${H}" class="mk" vector-effect="non-scaling-stroke"/>`).join('');
+  const play = o.cur != null ? `<line id="pf-play" x1="0" x2="0" y1="0" y2="${H}" class="play" vector-effect="non-scaling-stroke"/>` : '';
+  return `<svg class="profile" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${esc(o.label || 'Plan')}">${rects}${marks}${play}</svg>`;
+}
+
+/* ================= derived numbers for a finished session ================= */
+const z5Of = rec => Math.round(rec.hrRest + 0.9 * (rec.hrMax - rec.hrRest));
+function seriesMinutesAbove(rec, thr) { const h = rec.hr5 || []; let n = 0; for (const v of h) if (isNum(v) && v >= thr) n++; return n * 5 / 60; }
+function speedAt(rec, sec) { let v = rec.startSpeed; for (const [t, s] of (rec.spd || [])) { if (t <= sec) v = s; else break; } return v; }
+function derive(rec) {
+  const hr5 = (rec.hr5 || []).filter(isNum);
+  rec.maxHr = hr5.length ? Math.max(...hr5) : null;
+  if (rec.mode === '4x4') {
+    const z5 = z5Of(rec);
+    if (hr5.length >= 24) rec.z5Min = Math.round(seriesMinutesAbove(rec, z5) * 2) / 2;
+    else {
+      let z = 0;
+      rec.intervals.forEach(iv => { if (isNum(iv.endHr) && iv.endHr >= z5) z += clamp(0.4 * (iv.endHr - z5) + 0.6, 0, 2.5) * (iv.bail ? 0.5 : 1); });
+      rec.z5Min = Math.round(z * 2) / 2;
+    }
+    rec.z5Measured = hr5.length >= 24;
+    rec.score = score4x4(rec);
+    rec.next = next4x4(rec);
+  } else {
+    const t = rec.target;
+    let inZone = null, dec = null;
+    if (hr5.length >= 24) {
+      const main = (rec.hr5 || []).map((v, i) => [i * 5, v]).filter(([s, v]) => s >= 360 && isNum(v));
+      rec.avgHr = main.length ? Math.round(main.reduce((a, x) => a + x[1], 0) / main.length) : Math.round(hr5.reduce((a, b) => a + b, 0) / hr5.length);
+      inZone = main.length ? Math.round(main.filter(x => x[1] >= t.lo && x[1] <= t.hi).length / main.length * 100) : null;
+      if (main.length >= 60) {
+        const half = Math.floor(main.length / 2), A = main.slice(0, half), B = main.slice(half);
+        const ef = arr => arr.reduce((s, [sec, v]) => s + speedAt(rec, sec) / v, 0) / arr.length;
+        const e1 = ef(A), e2 = ef(B);
+        if (e1 > 0) dec = r1((e1 - e2) / e1 * 100);
+      }
+    } else {
+      const c = rec.checks.filter(x => isNum(x.hr));
+      rec.avgHr = c.length ? Math.round(c.reduce((a, x) => a + x.hr, 0) / c.length) : null;
+      inZone = c.length ? Math.round(c.filter(x => x.hr >= t.lo && x.hr <= t.hi).length / c.length * 100) : null;
+      const main = c.filter(x => x.min >= 10 && x.speed > 0);
+      if (main.length >= 4) {
+        const mid = (main[0].min + main[main.length - 1].min) / 2;
+        const a = main.filter(x => x.min <= mid), b = main.filter(x => x.min > mid);
+        if (a.length >= 2 && b.length >= 2) {
+          const ef = arr => arr.reduce((s, x) => s + x.speed / x.hr, 0) / arr.length;
+          const e1 = ef(a), e2 = ef(b);
+          dec = r1((e1 - e2) / e1 * 100);
+        }
+      }
+    }
+    rec.inZonePct = inZone;
+    rec.decoupling = dec;
+    const durPct = clamp(Math.round(rec.durSec / 60 / rec.plannedMin * 100), 0, 100);
+    const drift = dec == null ? null : dec <= 5 ? 100 : dec <= 10 ? Math.round(100 - (dec - 5) * 10) : Math.max(30, Math.round(50 - (dec - 10) * 4));
+    rec.score = combine([{k: 'Time in Zone 2', v: inZone, w: .5}, {k: 'Duration', v: durPct, w: .25}, {k: 'Heart rate drift', v: drift, w: .25}]);
+    rec.score.missingHr = inZone == null;
+    rec.next = nextZ2(rec);
+  }
+  return rec;
+}
+function combine(parts) {
+  const av = parts.filter(p => p.v != null), W = av.reduce((a, p) => a + p.w, 0);
+  return {total: av.length ? Math.round(av.reduce((a, p) => a + p.v * p.w, 0) / W) : null, parts: parts.map(p => ({k: p.k, v: p.v}))};
+}
+function score4x4(rec) {
+  const {lo, hi} = rec.target, ivs = rec.intervals;
+  const vals = ivs.map(iv => {
+    if (!iv.done && !iv.bail) return 0;
+    if (!isNum(iv.endHr)) return iv.bail ? 30 : null;
+    let v = iv.endHr < lo ? 100 - (lo - iv.endHr) * 12 : iv.endHr > hi ? 100 - (iv.endHr - hi) * 8 : 100;
+    if (iv.bail) v = Math.min(v, 40);
+    return clamp(v, 0, 100);
+  });
+  const known = vals.filter(v => v != null);
+  const intensity = known.length ? Math.round(known.reduce((a, b) => a + b, 0) / known.length) : null;
+  const hrs = ivs.filter(iv => isNum(iv.endHr)).map(iv => iv.endHr);
+  const consistency = hrs.length >= 2 ? clamp(Math.round(100 - Math.max(0, Math.max(...hrs) - Math.min(...hrs) - 4) * 8), 0, 100) : null;
+  let exec = 100;
+  ivs.forEach(iv => { if (iv.bail) exec -= 15; else if (!iv.done) exec -= 25; });
+  if (!rec.coolDone) exec -= 15;
+  if (rec.longestPauseSec > 120) exec -= 10;
+  const sc = combine([{k: 'Intensity', v: intensity, w: .5}, {k: 'Consistency', v: consistency, w: .25}, {k: 'Execution', v: clamp(exec, 0, 100), w: .25}]);
+  sc.missingHr = ivs.some(iv => (iv.done || iv.bail) && !isNum(iv.endHr));
+  return sc;
+}
+function next4x4(rec) {
+  const {lo, hi} = rec.target, ivs = rec.intervals;
+  const start = isNum(ivs[0] && ivs[0].startSpeed) ? ivs[0].startSpeed : rec.startSpeed;
+  if (!isNum(start)) return null;
+  const withHr = ivs.filter(iv => isNum(iv.endHr));
+  if (ivs.some(iv => iv.bail)) return {speed: r1(start - 0.3), text: 'Your legs were the limit. Start 0.3 slower next time.'};
+  if (withHr.length < 2) return {speed: start, text: 'Not enough finish heart rates for a call. Same start speed again.'};
+  const low = withHr.filter(iv => iv.endHr < lo), high = withHr.filter(iv => iv.endHr > hi);
+  const rpeOk = ivs.every(iv => !isNum(iv.rpe) || iv.rpe <= (iv.n === 4 ? 9 : 8));
+  if (high.length >= 2) return {speed: r1(start - 0.3), text: `${high.length} intervals finished above ${hi}. Start 0.3 slower next time.`};
+  if (low.length >= 2) return {speed: r1(start + 0.3), text: `${low.length} intervals finished below ${lo}. Start 0.3 faster next time.`};
+  if (low.length === 1 && low[0].n === 1) {
+    const e = [ivs[1], ivs[2]].map(iv => iv && iv.endSpeed).filter(isNum);
+    const sp = e.length ? r1(e.reduce((a, b) => a + b, 0) / e.length) : r1(start + 0.3);
+    return {speed: sp, text: 'Interval 1 reached Zone 5 too late. Start all four at the speed you finished intervals 2 and 3 on.'};
+  }
+  if (withHr.length === 4 && !low.length && !high.length && rpeOk && ivs.every(iv => iv.done)) return {speed: r1(start + 0.3), text: 'All four on target and under control. Start 0.3 faster next time.'};
+  if (withHr.length === 4 && !low.length && !high.length) return {speed: start, text: 'All on target, but it was hard. Keep the start speed until it feels like 8 out of 10 at most.'};
+  return {speed: start, text: 'Close to target. Same start speed again and steer it cleanly.'};
+}
+function nextZ2(rec) {
+  const hasSeries = (rec.hr5 || []).filter(isNum).length >= 24;
+  const c = rec.checks.filter(x => isNum(x.hr));
+  if (!hasSeries && !c.length) return null;
+  const lastSpeed = hasSeries ? speedAt(rec, rec.durSec) : (c[c.length - 1].speed || rec.startSpeed);
+  const base = r1(lastSpeed), t = rec.target;
+  if (rec.avgHr > t.aimHi + 2 || (rec.decoupling != null && rec.decoupling > 8) || c.some(x => x.talk === 'kurz')) return {speed: r1(base - 0.2), text: 'A bit too hard overall. Next time 0.2 slower or less vest weight.'};
+  if (rec.avgHr < t.aimLo - 3) return {speed: r1(base + 0.2), text: 'A bit too easy overall. Next time 0.2 faster or a little more vest weight.'};
+  return {speed: base, text: 'This pace fits. Start here next time.'};
+}
+
+/* ================= storage: claude db when available, local otherwise ================= */
+function normSession(d) {
+  if (!d || typeof d !== 'object') return null;
+  if (typeof d.id !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(d.id)) return null;
+  if (d.mode !== '4x4' && d.mode !== 'z2') return null;
+  const n = v => isNum(v) ? Number(v) : null;
+  if (n(d.startedAt) == null) return null;
+  const s = {
+    v: 2, id: d.id, mode: d.mode, startedAt: n(d.startedAt), endedAt: n(d.endedAt) ?? n(d.startedAt),
+    durSec: n(d.durSec) ?? 0, pauseSec: n(d.pauseSec) ?? 0, longestPauseSec: n(d.longestPauseSec) ?? 0,
+    recovery: ['gruen', 'gelb', 'rot'].includes(d.recovery) ? d.recovery : null, legsHeavy: !!d.legsHeavy,
+    hrMax: n(d.hrMax) ?? DEFAULTS.hrMax, hrRest: n(d.hrRest) ?? DEFAULTS.hrRest,
+    target: {lo: n(d.target && d.target.lo) ?? 175, hi: n(d.target && d.target.hi) ?? 180, aimLo: n(d.target && d.target.aimLo), aimHi: n(d.target && d.target.aimHi)},
+    incline: n(d.incline) ?? 15, startSpeed: n(d.startSpeed), vestKg: n(d.vestKg) ?? 0, plannedMin: n(d.plannedMin) ?? (d.mode === '4x4' ? 40 : 90),
+    intervals: Array.isArray(d.intervals) ? d.intervals.slice(0, 4).map((iv, k) => ({n: k + 1, startSpeed: n(iv && iv.startSpeed), endSpeed: n(iv && iv.endSpeed), endHr: n(iv && iv.endHr), rpe: n(iv && iv.rpe), bail: !!(iv && iv.bail), done: !!(iv && iv.done), skipped: !!(iv && iv.skipped), auto: !!(iv && iv.auto)})) : [],
+    checks: Array.isArray(d.checks) ? d.checks.slice(0, 80).map(c => ({min: n(c && c.min) ?? 0, hr: n(c && c.hr), speed: n(c && c.speed) ?? 0, talk: c && c.talk === 'kurz' ? 'kurz' : 'ok'})).filter(c => c.hr != null) : [],
+    hr5: Array.isArray(d.hr5) ? d.hr5.slice(0, 2600).map(v => isNum(v) && v >= 30 && v <= 240 ? Math.round(v) : null) : [],
+    spd: Array.isArray(d.spd) ? d.spd.slice(0, 400).filter(x => Array.isArray(x) && isNum(x[0]) && isNum(x[1])).map(x => [Math.round(x[0]), r1(x[1])]) : [],
+    marks: Array.isArray(d.marks) ? d.marks.slice(0, 60).filter(x => Array.isArray(x) && isNum(x[0]) && typeof x[1] === 'string').map(x => [Math.round(x[0]), x[1].slice(0, 8)]) : [],
+    hrSrc: ['whoop', 'sim', 'manual'].includes(d.hrSrc) ? d.hrSrc : 'manual', cmds: n(d.cmds) ?? 0,
+    coolDone: d.coolDone == null ? null : !!d.coolDone, endedEarly: !!d.endedEarly,
+    distKm: n(d.distKm) ?? 0, elevM: n(d.elevM) ?? 0, kcal: n(d.kcal) ?? 0,
+    z5MinWhoop: n(d.z5MinWhoop), note: typeof d.note === 'string' ? d.note.slice(0, 2000) : '',
+    updatedAt: n(d.updatedAt) ?? 0, synced: !!d.synced
+  };
+  if (s.mode === '4x4') while (s.intervals.length < 4) s.intervals.push({n: s.intervals.length + 1, startSpeed: null, endSpeed: null, endHr: null, rpe: null, bail: false, done: false, skipped: false, auto: false});
+  if (s.mode === 'z2' && s.target.aimLo == null) { const Z = zonesOf(sanitizeSettings({hrMax: s.hrMax, hrRest: s.hrRest})); s.target = {lo: Z.z2lo, hi: Z.z2hi, aimLo: Z.aimLo, aimHi: Z.aimHi}; }
+  return derive(s);
+}
+function cloudBody(rec) { const b = JSON.parse(JSON.stringify(rec)); delete b.synced; return b; }
+
+const Store = {
+  settings: sanitizeSettings(DEFAULTS), sessions: [], cloud: 'connecting', db: null, q: {}, sTimer: null,
+  init() {
+    this.settings = sanitizeSettings(LS.get(K.settings, DEFAULTS));
+    const ss = LS.get(K.sessions, []);
+    this.sessions = Array.isArray(ss) ? ss.map(normSession).filter(Boolean) : [];
+    this.sort();
+  },
+  sort() { this.sessions.sort((a, b) => b.startedAt - a.startedAt); },
+  byId(id) { return this.sessions.find(s => s.id === id) || null; },
+  persist() { LS.set(K.settings, this.settings); LS.set(K.sessions, this.sessions); },
+  async connect() {
+    let db = null;
+    try { db = window.claude && typeof window.claude.use === 'function' ? await window.claude.use('db') : null; } catch (e) { db = null; }
+    if (!db) { this.cloud = 'local'; onStoreChange(); return; }
+    this.db = db;
+    let answered = false;
+    const timer = setTimeout(() => { if (!answered) { this.cloud = 'slow'; onStoreChange(); } }, 10000);
+    try {
+      db.collection('sessions').onSnapshot(snap => {
+        answered = true; clearTimeout(timer);
+        const wasOn = this.cloud === 'on';
+        this.cloud = 'on';
+        const cloud = snap.docs.map(d => normSession(d.data())).filter(Boolean);
+        const ids = new Set(cloud.map(s => s.id));
+        const pending = this.sessions.filter(s => !s.synced && !ids.has(s.id));
+        cloud.forEach(s => { s.synced = true; });
+        this.sessions = cloud.concat(pending);
+        this.sort(); this.persist(); onStoreChange();
+        if (!wasOn) pending.forEach(s => this.queueWrite(s.id));
+      }, () => { answered = true; clearTimeout(timer); this.cloud = 'local'; onStoreChange(); });
+      db.doc('config/settings').onSnapshot(doc => {
+        if (doc.exists) {
+          const data = doc.data();
+          if (isNum(data.updatedAt) && Number(data.updatedAt) > (this.settings.updatedAt || 0)) { this.settings = sanitizeSettings(data); this.persist(); onStoreChange(); }
+        }
+      }, () => {});
+    } catch (e) { clearTimeout(timer); this.cloud = 'local'; onStoreChange(); }
+  },
+  setSetting(k, v) {
+    const next = Object.assign({}, this.settings, {[k]: v});
+    this.settings = sanitizeSettings(next);
+    this.settings.updatedAt = Date.now();
+    this.persist();
+    clearTimeout(this.sTimer);
+    this.sTimer = setTimeout(() => this.pushSettings(), 900);
+  },
+  replaceSettings(o) { this.settings = sanitizeSettings(o); this.settings.updatedAt = Date.now(); this.persist(); this.pushSettings(); },
+  async pushSettings() {
+    if (!this.db || this.cloud !== 'on') return;
+    try { await this.db.doc('config/settings').set(Object.assign({}, this.settings)); } catch (e) { this.writeError(e); }
+  },
+  saveSession(rec, quiet) {
+    rec.updatedAt = Date.now(); rec.synced = false;
+    const i = this.sessions.findIndex(s => s.id === rec.id);
+    if (i >= 0) this.sessions[i] = rec; else this.sessions.push(rec);
+    this.sort(); this.persist(); this.queueWrite(rec.id);
+    if (!quiet) onStoreChange();
+  },
+  queueWrite(id) {
+    const q = this.q[id] || (this.q[id] = {busy: false, dirty: false, retried: false});
+    q.dirty = true;
+    if (q.busy) return;
+    (async () => {
+      q.busy = true;
+      while (q.dirty) {
+        q.dirty = false;
+        const rec = this.byId(id);
+        if (!rec || !this.db || this.cloud !== 'on') break;
+        try { await this.db.doc('sessions/' + id).set(cloudBody(rec)); rec.synced = true; this.persist(); }
+        catch (e) {
+          if (e && e.code === 'unavailable' && !q.retried) { q.retried = true; q.dirty = true; await sleep(700 + Math.random() * 1300); }
+          else { this.writeError(e); break; }
+        }
+      }
+      q.busy = false;
+    })();
+  },
+  async deleteSession(id) {
+    this.sessions = this.sessions.filter(s => s.id !== id);
+    this.persist(); onStoreChange();
+    if (this.db && this.cloud === 'on') { try { await this.db.doc('sessions/' + id).delete(); } catch (e) {} }
+  },
+  importData(obj, takeSettings) {
+    const list = Array.isArray(obj && obj.sessions) ? obj.sessions : Array.isArray(obj && obj.einheiten) ? obj.einheiten : null;
+    const st = obj && (obj.settings || obj.werte);
+    if (!list && !st) return null;
+    let added = 0, updated = 0;
+    for (const raw of (list || [])) {
+      const rec = normSession(raw);
+      if (!rec) continue;
+      const cur = this.byId(rec.id);
+      if (!cur) { this.saveSession(rec, true); added++; }
+      else if ((rec.updatedAt || 0) > (cur.updatedAt || 0)) { this.saveSession(rec, true); updated++; }
+    }
+    if (takeSettings && st && typeof st === 'object') this.replaceSettings(Object.assign({}, st, {btName: this.settings.btName}));
+    onStoreChange();
+    return {added, updated, settings: !!(takeSettings && st)};
+  },
+  writeError(e) {
+    const c = e && e.code;
+    if (c === 'quota_exceeded') { toast('Storage is full. Delete a few old sessions in History.'); return; }
+    if (['invalid_argument', 'not_granted', 'revoked', 'capability_disabled', 'capability_removed'].includes(c)) { this.cloud = 'local'; onStoreChange(); }
+  }
+};
+function syncText() {
+  return {on: 'Saved to your Claude account', slow: 'Account storage not reachable', local: 'Saved on this device', connecting: 'Connecting storage'}[Store.cloud] || '';
+}
+
+/* ================= tones, vibration, wake lock ================= */
+const Snd = {
+  ctx: null,
+  unlock() {
+    try {
+      if (!this.ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; this.ctx = new AC(); }
+      if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+    } catch (e) {}
+  },
+  ready() { return !!(this.ctx && this.ctx.state === 'running'); },
+  enabled() { return Store.settings.sound && (!S || S.soundMode !== 'off'); },
+  tone(f, d, w, type, g) {
+    const c = this.ctx, t0 = c.currentTime + (w || 0);
+    const o = c.createOscillator(), a = c.createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(f, t0);
+    a.gain.setValueAtTime(0.0001, t0);
+    a.gain.exponentialRampToValueAtTime(g || 0.25, t0 + 0.012);
+    a.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+    o.connect(a); a.connect(c.destination);
+    o.start(t0); o.stop(t0 + d + 0.03);
+  },
+  play(kind, force) {
+    if (!force && !this.enabled()) return;
+    this.unlock();
+    if (!this.ready()) return;
+    try {
+      switch (kind) {
+        case 'tick': this.tone(880, .08, 0, 'square', .12); break;
+        case 'go': this.tone(988, .14, 0, 'square', .18); this.tone(1319, .32, .16, 'square', .18); break;
+        case 'rest': this.tone(659, .4, 0, 'sine', .3); this.tone(440, .6, .3, 'sine', .28); break;
+        case 'check': this.tone(784, .12, 0, 'triangle', .3); this.tone(1047, .2, .14, 'triangle', .3); break;
+        case 'ready': [0, .17, .34].forEach(w => this.tone(1175, .09, w, 'square', .14)); break;
+        case 'cmd': this.tone(1047, .1, 0, 'triangle', .28); break;
+        case 'done': [523, 659, 784, 1047].forEach((f, i) => this.tone(f, .28, i * .14, 'triangle', .26)); break;
+      }
+    } catch (e) {}
+  }
+};
+function buzz(p) { if (!Store.settings.vibrate) return; try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
+const Wake = {
+  lock: null, state: 'off',
+  async request() {
+    if (!('wakeLock' in navigator)) { this.state = 'unsupported'; wakeUI(); return; }
+    if (this.lock && !this.lock.released) { this.state = 'on'; wakeUI(); return; }
+    try {
+      this.lock = await navigator.wakeLock.request('screen');
+      this.state = 'on';
+      this.lock.addEventListener('release', () => { this.state = 'off'; wakeUI(); });
+    } catch (e) { this.state = 'denied'; }
+    wakeUI();
+  },
+  async release() { try { if (this.lock) await this.lock.release(); } catch (e) {} this.lock = null; this.state = 'off'; }
+};
+function wakeUI() {
+  const el = $('#lv-wake'); if (!el) return;
+  el.dataset.s = Wake.state;
+  el.textContent = Wake.state === 'on' ? 'Screen stays on while the coach is open.' : Wake.state === 'off' ? 'Asking to keep the screen on.' : 'Your screen may turn off. Raise the screen timeout on your phone.';
+}
+
+/* ================= coach voice ================= */
+const NUM_ONES = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+const NUM_TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+const twoW = n => n < 20 ? NUM_ONES[n] : NUM_TENS[Math.floor(n / 10)] + (n % 10 ? '-' + NUM_ONES[n % 10] : '');
+const hrW = n => { if (n < 100) return twoW(n); const h = Math.floor(n / 100), r = n % 100; return r === 0 ? NUM_ONES[h] + ' hundred' : r < 10 ? NUM_ONES[h] + ' oh ' + NUM_ONES[r] : NUM_ONES[h] + ' ' + twoW(r); };
+const vKey = v => 'v' + Math.round(Number(v) * 10);
+const hKey = b => 'h' + Math.round(Number(b));
+function keyText(k) {
+  const T = VOICE_DATA && VOICE_DATA.text;
+  if (T && T[k]) return T[k];
+  let m = /^v(\d+)$/.exec(k);
+  if (m) { const t = +m[1]; return twoW(Math.floor(t / 10)) + ' point ' + NUM_ONES[t % 10] + '.'; }
+  m = /^h(\d+)$/.exec(k);
+  if (m) return hrW(+m[1]) + '.';
+  return '';
+}
+function wavBytes(f32, sr) {
+  const n = f32.length, buf = new ArrayBuffer(44 + n * 2), dv = new DataView(buf);
+  const w = (o, s) => { for (let i = 0; i < s.length; i++) dv.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, 'RIFF'); dv.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt ');
+  dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true); dv.setUint32(24, sr, true);
+  dv.setUint32(28, sr * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true); w(36, 'data'); dv.setUint32(40, n * 2, true);
+  for (let i = 0, o = 44; i < n; i++, o += 2) { const s = Math.max(-1, Math.min(1, f32[i])); dv.setInt16(o, s < 0 ? s * 0x8000 : s * 0x7fff, true); }
+  return new Uint8Array(buf);
+}
+function b64(bytes) { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); }
+const Speaker = {
+  state: 'idle', loaded: '', loading: null, buf: null, map: null, err: '', audio: null, wa: null, path: '', log: [], phoneVoice: null,
+  want() { return Store.settings.voiceName; },
+  load(name) {
+    name = name || this.want();
+    if (name === 'phone' || !VOICE_DATA || !VOICE_DATA.maps || !VOICE_DATA.maps[name]) { this.state = name === 'phone' ? 'phone' : 'failed'; return Promise.resolve(); }
+    if (this.loaded === name && this.buf) { this.state = 'ready'; return Promise.resolve(); }
+    if (this.loading && this.loadingName === name) return this.loading;
+    this.state = 'loading'; this.loadingName = name; uiVoice();
+    this.loading = (async () => {
+      const res = await fetch('voice-' + name + '.ogg');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const ab = await res.arrayBuffer();
+      const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+      if (!OAC) throw new Error('no audio decoding');
+      const oc = new OAC(1, 24000, 24000);
+      const buf = await new Promise((ok, bad) => { const p = oc.decodeAudioData(ab, ok, bad); if (p && p.then) p.then(ok, bad); });
+      this.buf = buf; this.map = VOICE_DATA.maps[name]; this.loaded = name; this.state = 'ready'; this.err = '';
+    })().catch(e => { this.state = 'failed'; this.err = String((e && e.message) || e); }).finally(() => { this.loading = null; uiVoice(); });
+    return this.loading;
+  },
+  render(keys) {
+    if (!this.buf || !this.map) return null;
+    const sr = this.buf.sampleRate, ch = this.buf.getChannelData(0), gap = Math.round(sr * 0.11), lead = Math.round(sr * 0.04);
+    const segs = [];
+    let total = lead + Math.round(sr * 0.08);
+    for (const k of keys) { const m = this.map[k]; if (!m) return null; const a = Math.round(m[0] * sr), n = Math.round(m[1] * sr); segs.push([a, n]); total += n + gap; }
+    const out = new Float32Array(total);
+    let p = lead;
+    for (const [a, n] of segs) { out.set(ch.subarray(a, Math.min(ch.length, a + n)), p); p += n + gap; }
+    return out;
+  },
+  stop() {
+    try { if (this.audio) { this.audio.pause(); this.audio.removeAttribute('src'); } } catch (e) {}
+    try { if (this.wa) { this.wa.stop(); this.wa = null; } } catch (e) {}
+    try { if ('speechSynthesis' in window) speechSynthesis.cancel(); } catch (e) {}
+  },
+  say(keys, o = {}) {
+    keys = (keys || []).filter(Boolean);
+    if (!keys.length) return;
+    this.log.push({t: Date.now(), keys: keys.join(' ')}); if (this.log.length > 60) this.log.shift();
+    if (!o.force && !voiceOn()) return;
+    const name = this.want();
+    if (name !== 'phone') {
+      if (this.loaded === name && this.buf) {
+        const pcm = this.render(keys);
+        if (pcm) { this.playPcm(pcm, this.buf.sampleRate); return; }
+      } else if (!this.loading) this.load(name);
+    }
+    this.phone(keys.map(keyText).join(' '));
+  },
+  playPcm(pcm, sr) {
+    this.stop();
+    const viaWA = () => {
+      Snd.unlock();
+      if (!Snd.ctx) return;
+      try { const c = Snd.ctx, b = c.createBuffer(1, pcm.length, sr); b.copyToChannel(pcm, 0); const s = c.createBufferSource(); s.buffer = b; s.connect(c.destination); s.start(); this.wa = s; this.path = 'web audio'; } catch (e) {}
+    };
+    try {
+      const a = this.audio || (this.audio = new Audio());
+      a.src = 'data:audio/wav;base64,' + b64(wavBytes(pcm, sr));
+      a.volume = 1;
+      const p = a.play();
+      this.path = 'media';
+      if (p && p.catch) p.catch(viaWA);
+    } catch (e) { viaWA(); }
+  },
+  pickPhoneVoice() {
+    try {
+      const vs = (speechSynthesis.getVoices() || []).filter(v => /^en([-_]|$)/i.test(v.lang));
+      const score = v => (/natural|neural|enhanced|premium/i.test(v.name) ? 4 : 0) + (/google/i.test(v.name) ? 2 : 0) + (/en[-_](us|gb)/i.test(v.lang) ? 1 : 0);
+      vs.sort((a, b) => score(b) - score(a));
+      this.phoneVoice = vs[0] || null;
+    } catch (e) {}
+  },
+  phone(text) {
+    try {
+      if (!text || !('speechSynthesis' in window)) return;
+      if (!this.phoneVoice) this.pickPhoneVoice();
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = this.phoneVoice ? this.phoneVoice.lang : 'en-US'; if (this.phoneVoice) u.voice = this.phoneVoice; u.rate = 1.0;
+      speechSynthesis.speak(u);
+      this.path = 'phone';
+    } catch (e) {}
+  }
+};
+function voiceOn() { return Store.settings.sound && Store.settings.voice && (!S || S.soundMode === 'all'); }
+try { if ('speechSynthesis' in window && speechSynthesis.addEventListener) speechSynthesis.addEventListener('voiceschanged', () => Speaker.pickPhoneVoice()); } catch (e) {}
+function uiVoice() {
+  document.querySelectorAll('[data-vstat]').forEach(el => { el.dataset.s = Speaker.state; el.textContent = voiceStatusText(); });
+}
+function voiceStatusText() {
+  const n = Store.settings.voiceName;
+  if (n === 'phone') return 'Using your phone’s voice';
+  return {ready: VOICE_NAMES[n] + ' is ready', loading: 'Loading ' + VOICE_NAMES[n], failed: 'Couldn’t load ' + VOICE_NAMES[n] + '. Your phone’s voice fills in.', idle: VOICE_NAMES[n] + ' loads in a moment', phone: 'Using your phone’s voice'}[Speaker.state] || '';
+}
+
+/* ================= heart rate: WHOOP over Bluetooth, simulation, manual ================= */
+const HR = {
+  mode: 'none', state: 'off', name: '', bpm: null, at: 0, hist: [], err: '', lostSaid: false,
+  push(bpm) {
+    const now = clock();
+    this.bpm = bpm; this.at = now;
+    this.hist.push([now, bpm]);
+    const cut = now - 300000;
+    while (this.hist.length && this.hist[0][0] < cut) this.hist.shift();
+    hrDyn(now);
+  },
+  fresh(now) { return this.bpm != null && now - this.at < 5000; },
+  avg(now, sec) {
+    const from = now - sec * 1000; let s = 0, n = 0;
+    for (let i = this.hist.length - 1; i >= 0 && this.hist[i][0] >= from; i--) { s += this.hist[i][1]; n++; }
+    return n ? s / n : null;
+  },
+  max(now, sec) {
+    const from = now - sec * 1000; let m = null;
+    for (let i = this.hist.length - 1; i >= 0 && this.hist[i][0] >= from; i--) if (m == null || this.hist[i][1] > m) m = this.hist[i][1];
+    return m;
+  },
+  reset() { this.hist = []; this.bpm = null; this.at = 0; }
+};
+function onBleValue(e) {
+  const dv = e && e.target && e.target.value;
+  if (!dv || dv.byteLength < 2) return;
+  const f = dv.getUint8(0);
+  const bpm = (f & 1) && dv.byteLength >= 3 ? dv.getUint16(1, true) : dv.getUint8(1);
+  if (bpm >= 30 && bpm <= 230) {
+    if (HR.state !== 'live') { HR.state = 'live'; uiHr(); }
+    HR.push(bpm);
+  }
+}
+const BLE = {
+  dev: null, ch: null, retrying: false,
+  async connect() {
+    if (!ENV.bt) { HR.err = 'unsupported'; uiHr(); return; }
+    HR.state = 'connecting'; HR.err = ''; uiHr();
+    try {
+      const dev = await navigator.bluetooth.requestDevice({filters: [{services: ['heart_rate']}, {namePrefix: 'WHOOP'}], optionalServices: ['heart_rate']});
+      await this.attach(dev);
+      Speaker.say(['hr_on']);
+    } catch (e) {
+      const cancelled = e && (e.name === 'NotFoundError' || /cancel/i.test(String(e.message)));
+      HR.state = this.dev ? HR.state : 'off';
+      if (HR.state !== 'live') HR.state = cancelled ? 'off' : 'error';
+      HR.err = cancelled ? '' : String((e && e.message) || e);
+      uiHr();
+    }
+  },
+  async attach(dev) {
+    if (this.dev && this.dev !== dev) this.release(true);
+    this.dev = dev; HR.name = dev.name || 'Heart rate sensor';
+    if (!dev.__coachBound) { dev.addEventListener('gattserverdisconnected', () => this.onDrop()); dev.__coachBound = true; }
+    const server = await dev.gatt.connect();
+    const svc = await server.getPrimaryService('heart_rate');
+    const ch = await svc.getCharacteristic('heart_rate_measurement');
+    if (this.ch && this.ch !== ch) { try { this.ch.removeEventListener('characteristicvaluechanged', onBleValue); } catch (e) {} }
+    ch.addEventListener('characteristicvaluechanged', onBleValue);
+    await ch.startNotifications();
+    this.ch = ch; HR.mode = 'ble'; HR.state = 'live'; HR.err = '';
+    if (Store.settings.btName !== HR.name) Store.setSetting('btName', HR.name);
+    uiHr();
+  },
+  onDrop() {
+    if (HR.mode !== 'ble' || !this.dev) return;
+    HR.state = 'lost'; uiHr();
+    this.retry();
+  },
+  async retry() {
+    if (this.retrying) return;
+    this.retrying = true;
+    for (let i = 0; i < 20 && this.dev && HR.state !== 'live' && HR.mode === 'ble'; i++) {
+      await sleep(Math.min(8000, 1000 * Math.pow(2, Math.min(i, 3))));
+      if (!this.dev || HR.mode !== 'ble') break;
+      try { await this.attach(this.dev); } catch (e) {}
+    }
+    this.retrying = false;
+  },
+  release(keepMode) {
+    try { if (this.ch) this.ch.removeEventListener('characteristicvaluechanged', onBleValue); } catch (e) {}
+    try { if (this.dev && this.dev.gatt && this.dev.gatt.connected) this.dev.gatt.disconnect(); } catch (e) {}
+    this.ch = null;
+    if (!keepMode) { this.dev = null; HR.mode = 'none'; HR.state = 'off'; HR.reset(); uiHr(); }
+  },
+  async restore() {
+    if (!ENV.bt || !navigator.bluetooth.getDevices || !Store.settings.btName) return;
+    try {
+      const devs = await navigator.bluetooth.getDevices();
+      const d = devs.find(x => x.name === Store.settings.btName);
+      if (d) { HR.state = 'connecting'; uiHr(); await this.attach(d); }
+    } catch (e) { if (HR.state === 'connecting') { HR.state = 'off'; uiHr(); } }
+  }
+};
+/* simulated athlete for the test run: heart rate follows speed and incline with realistic lag and drift */
+const SIM = {
+  hr: 90, drift: 0, last: 0,
+  start() { this.hr = 88; this.drift = 0; this.last = 0; },
+  step(now) {
+    if (!S || !this.last) { this.last = now; return; }
+    const dt = (now - this.last) / 1000; this.last = now;
+    if (dt <= 0) return;
+    const st = Store.settings, ph = curPhase();
+    const grade = (ph.incl || 0) / 100, v = (S.paused ? 0 : S.speed) * 1000 / 60;
+    const vo2 = 3.5 + 0.1 * v + 1.8 * v * grade, vo2max = 46;
+    const f = clamp((vo2 - 3.5) / (vo2max - 3.5), 0, 1.05);
+    this.drift = f > 0.8 ? Math.min(12, this.drift + dt * 0.045) : Math.max(0, this.drift - dt * 0.06);
+    const mins = sessionEl(now) / 60000;
+    const target = st.hrRest + (st.hrMax - st.hrRest) * Math.pow(f, 0.95) + this.drift + (S.mode === 'z2' ? mins * 0.08 : 0);
+    const tau = target > this.hr ? 22 : 38;
+    this.hr += (target - this.hr) * (1 - Math.exp(-dt / tau));
+    HR.push(Math.round(this.hr + (Math.random() - 0.5) * 2));
+  }
+};
+function hrLive(now) { return !!S && (S.hrSrc === 'sim' || HR.mode === 'ble') && HR.fresh(now); }
+
+/* ================= engine ================= */
+let S = null, loopId = null, lastSave = 0, dyn = {}, lastSummaryId = null, demoRec = null;
+let sheetState = null, sheetTimer = null, armed = {k: null, t: 0};
+let UI4 = null, UIZ = null;
+const DEMO_ID = 'demo';
+/* session clock: real time, or ten times faster during a test run */
+function clock() { const t = Date.now(); return S && S.demo ? S.demoT0 + (t - S.demoT0) * S.demo : t; }
+function recById(id) { return id === DEMO_ID ? demoRec : Store.byId(id); }
+function saveRec(rec, quiet) { if (rec.id === DEMO_ID) { if (!quiet) render(); } else Store.saveSession(rec, quiet); }
+
+const curPhase = () => S.phases[S.idx];
+const phaseEl = now => S.accum + (S.runSince != null ? now - S.runSince : 0);
+const sessionEl = now => now - S.startedAt - S.pauseMs - (S.paused && S.pausedAt ? now - S.pausedAt : 0);
+const offsetOf = i => S.phases.slice(0, i).reduce((a, p) => a + p.dur, 0);
+function remainingTotal(now) {
+  let ms = curPhase().dur * 1000 - phaseEl(now);
+  for (let i = S.idx + 1; i < S.phases.length; i++) ms += S.phases[i].dur * 1000;
+  return Math.max(0, ms);
+}
+function workPhaseFor(n) { return S.phases.find(p => p.type === 'work' && p.n === n) || null; }
+
+function startSession(mode, opts, demo) {
+  const st = Store.settings, now = Date.now(), Z = zonesOf(st);
+  const phases = mode === '4x4' ? build4x4(st, opts) : buildZ2(st, opts);
+  const hrSrc = demo ? 'sim' : HR.mode === 'ble' && HR.state === 'live' ? 'whoop' : 'manual';
+  S = {
+    v: 2, id: uid(), mode, opts, Z, target: mode === '4x4' ? target4x4(Z, opts.recovery) : null,
+    demo: demo || 0, demoT0: now, hrSrc,
+    startedAt: now, phases, idx: 0, accum: 0, runSince: now, lastInt: now,
+    paused: false, pausedAt: null, pauseMs: 0, longestPause: 0, closedPause: false,
+    speed: phases[0].speed, dist: 0, elev: 0, kcal: 0,
+    intervals: mode === '4x4' ? [1, 2, 3, 4].map(n => ({n, startSpeed: null, endSpeed: null, endHr: null, rpe: null, bail: false, done: false, started: false, skipped: false, auto: false})) : [],
+    checks: [], fired: {}, advice: null, adviceAt: 0, done: false,
+    hr5: [], hr5Next: 0, spd: [[0, phases[0].speed]], marks: [], cmds: 0, lastCmdAt: -1e9, coolExt: 0,
+    hiSince: 0, loSince: 0, underSince: 0, lostSince: 0, z2Next: 0, said: {},
+    soundMode: st.sound ? (st.voice ? 'all' : 'tones') : 'off'
+  };
+  if (S.hrSrc === 'sim') { HR.reset(); SIM.start(); }
+  dyn = {};
+  enterPhase(false);
+  ensureLoop();
+  Wake.request();
+  if (demo) Speaker.say(['demo']);
+  tick(now);
+  persistActive();
+  go('live');
+}
+function integrate(until) {
+  if (S.runSince == null) { S.lastInt = until; return; }
+  const dt = until - S.lastInt;
+  if (dt <= 0) return;
+  const ph = curPhase(), grade = (ph.incl || 0) / 100, km = S.speed * dt / 3600000;
+  S.dist += km;
+  S.elev += km * 1000 * Math.sin(Math.atan(grade));
+  const vmin = S.speed * 1000 / 60;
+  const vo2 = 3.5 + 0.1 * vmin + 1.8 * vmin * grade;
+  const mass = Store.settings.weight + (S.mode === 'z2' ? (S.opts.vestKg || 0) : 0);
+  S.kcal += vo2 * mass / 1000 * 5 * (dt / 60000);
+  S.lastInt = until;
+}
+function tick(now) {
+  if (!S || S.done) return;
+  if (S.hrSrc === 'sim') SIM.step(now);
+  if (S.paused) return;
+  for (let guard = 0; guard < 80; guard++) {
+    const ph = curPhase();
+    const endAbs = S.runSince + (ph.dur * 1000 - S.accum);
+    integrate(Math.min(now, endAbs));
+    if (now < endAbs) break;
+    if (ph.type === 'cool' && coolNeedsMore(endAbs)) { ph.dur += 60; S.coolExt++; Speaker.say(['cool_wait']); continue; }
+    completePhase(ph, endAbs);
+    if (S.idx >= S.phases.length - 1) { finishSession(endAbs, false); return; }
+    S.idx++; S.accum = 0; S.runSince = endAbs; S.lastInt = endAbs;
+    enterPhase(now - endAbs > 2500);
+  }
+  recordHr(now);
+  fireCues(now);
+  liveCoach(now);
+}
+function coolNeedsMore(at) {
+  if (!hrLive(at) || S.coolExt >= 4) return false;
+  const a = HR.avg(at, 10);
+  return a != null && a > S.Z.coolTo;
+}
+/* heart rate series every 5 s of moving time, plus speed log */
+function recordHr(now) {
+  const el = sessionEl(now);
+  while (S.hr5Next <= el && S.hr5.length < 2600) {
+    const a = HR.mode === 'none' && S.hrSrc !== 'sim' ? null : hrLive(now) ? HR.avg(now, 5) : null;
+    S.hr5.push(a == null ? null : Math.round(a));
+    S.hr5Next += 5000;
+  }
+}
+function logSpeed() {
+  if (!S) return;
+  const sec = Math.round(sessionEl(clock()) / 1000), last = S.spd[S.spd.length - 1];
+  if (last && last[1] === S.speed) return;
+  if (last && sec - last[0] < 2) last[1] = S.speed; else if (S.spd.length < 400) S.spd.push([sec, S.speed]);
+}
+function completePhase(ph, at) {
+  ph.completed = true;
+  if (ph.type === 'work') {
+    const iv = S.intervals[ph.n - 1];
+    iv.endSpeed = S.speed; iv.done = true;
+    if (hrLive(at)) { const m = HR.max(at, 20); if (m != null) { iv.endHr = Math.round(m); iv.auto = true; } }
+    planNext(ph.n);
+  }
+}
+/* start speed of the next interval: end speed of this one, +0.3 below target, -0.3 above, -0.5 after legs gave out */
+function planNext(n) {
+  const iv = S.intervals[n - 1], nx = workPhaseFor(n + 1);
+  if (!iv || !nx || S.intervals[nx.n - 1].started) return null;
+  const base = isNum(iv.endSpeed) ? iv.endSpeed : S.speed;
+  let adj = 0;
+  if (iv.bail) adj = -0.5;
+  else if (isNum(iv.endHr)) adj = iv.endHr < S.target.lo ? 0.3 : iv.endHr > S.target.hi ? -0.3 : 0;
+  nx.speed = r1(clamp(base + adj, 2, 16));
+  return {nx, adj};
+}
+function enterPhase(late) {
+  const ph = curPhase();
+  S.speed = ph.speed; logSpeed();
+  if (S.marks.length < 60) S.marks.push([Math.round(sessionEl(clock()) / 1000), ph.type]);
+  S.hiSince = S.loSince = S.underSince = 0;
+  if (ph.type === 'work') { const iv = S.intervals[ph.n - 1]; iv.startSpeed = ph.speed; iv.started = true; if (sheetState && sheetState.kind === 'hr') closeSheet(); }
+  if (S.mode === '4x4' && (ph.type === 'rec' || ph.type === 'cool') && !hrLive(clock())) {
+    let n = 0;
+    for (let i = S.idx - 1; i >= 0; i--) if (S.phases[i].type === 'work') { n = S.phases[i].n; break; }
+    const iv = n ? S.intervals[n - 1] : null;
+    if (iv && (iv.done || iv.bail) && !isNum(iv.endHr)) setTimeout(() => { if (S && !S.done && curPhase() === ph && !sheetState) openHrSheet(n, 'live'); }, late ? 0 : 1200);
+  }
+  persistActive();
+  if (route() === 'live') renderLive();
+}
+function lastWorkBefore(idx) { for (let i = idx - 1; i >= 0; i--) if (S.phases[i].type === 'work') return S.phases[i]; return null; }
+function cuesFor(ph) {
+  const L = [], i = S.phases.indexOf(ph), nx = S.phases[i + 1];
+  const add = (at, id, snd, vib, fn) => L.push({at, id, snd, vib, fn});
+  if (S.mode === '4x4') {
+    switch (ph.type) {
+      case 'warm':
+        if (ph.key === 'warm') add(0, 'in', 'go', [150], () => Speaker.say(['w_start', vKey(ph.speed)]));
+        else if (ph.rewarm) add(0, 'in', 'rest', [300], () => Speaker.say(['w_rewarm']));
+        else add(0, 'in', 'rest', [300], () => Speaker.say(['w_easy']));
+        break;
+      case 'pick': add(0, 'in', 'ready', [80, 60, 80], () => Speaker.say(['pickup', vKey(ph.speed)])); break;
+      case 'work':
+        add(0, 'in', 'go', [250, 100, 250, 100, 500], () => Speaker.say(hrLive(clock()) ? ['int' + ph.n] : ['int' + ph.n, 'ignore']));
+        add(120, 'm2', 'check', [120, 80, 120], () => decide4(ph, 2));
+        add(180, 'm3', 'check', [120, 80, 120], () => decide4(ph, 3));
+        add(210, 'm35', null, null, () => { if (clock() - S.lastCmdAt > 20000) Speaker.say(['s30']); });
+        break;
+      case 'rec': {
+        const w = lastWorkBefore(i), iv = w ? S.intervals[w.n - 1] : null;
+        add(0, 'in', 'rest', [600], () => Speaker.say(iv && iv.auto && isNum(iv.endHr) ? ['int_done', hKey(iv.endHr), 'rec_short'] : ['rec']));
+        add(25, 'nx', null, null, () => { if (hrLive(clock()) && nx && nx.type === 'work') Speaker.say(['next_int', vKey(nx.speed)]); });
+        add(120, 'slow', null, null, () => { if (hrLive(clock())) { const a = HR.avg(clock(), 20); if (a != null && a > S.Z.recTo + 22) Speaker.say(['rec_slow']); } });
+        break;
+      }
+      case 'cool': {
+        const w = lastWorkBefore(i), iv = w ? S.intervals[w.n - 1] : null;
+        add(0, 'in', 'rest', [600], () => Speaker.say(iv && iv.auto && isNum(iv.endHr) ? ['int_done', hKey(iv.endHr), 'cool'] : ['cool']));
+        break;
+      }
+    }
+    if (nx && nx.type === 'work' && ph.dur > 15) add(ph.dur - 10, 'up', 'ready', [80, 60, 80, 60, 80], () => Speaker.say(['prep', vKey(nx.speed)]));
+  } else {
+    if (ph.type === 'z2in') add(0, 'in', 'go', [150], () => Speaker.say(['z2_start', vKey(ph.speed)]));
+    if (ph.type === 'z2') {
+      add(0, 'in', 'go', [150], () => Speaker.say([hrLive(clock()) ? 'z2_main_live' : 'z2_main', vKey(ph.speed)]));
+      const off = offsetOf(i), total = off + ph.dur, quiet = S.opts.quiet;
+      for (const t of checkTimes()) if (t >= off && t < total) add(t - off, 'c' + t, null, null, () => { if (!hrLive(clock())) { Snd.play('check'); buzz([120, 80, 120]); Speaker.say(['z2_check']); openCheckSheet(true); } });
+      if (!quiet) for (let t = 1800; t < total - 120; t += 1800) if (t >= off) add(t - off, 'd' + t, null, null, () => Speaker.say(['sip']));
+      if (!quiet && total >= 1800) add(Math.round(total / 2) - off, 'half', null, null, () => Speaker.say(['half']));
+      if (!quiet && ph.dur > 1200) add(ph.dur - 600, 'l10', null, null, () => Speaker.say(['left10']));
+      if (ph.dur > 600) add(ph.dur - 300, 'l5', null, null, () => Speaker.say(['left5']));
+    }
+  }
+  if (ph.dur > 4) [3, 2, 1].forEach(s => add(ph.dur - s, 't' + s, 'tick', [40], null));
+  const by = {};
+  L.forEach(c => {
+    const k = c.at;
+    if (!by[k]) { by[k] = Object.assign({}, c); return; }
+    const m = by[k], f1 = m.fn, f2 = c.fn;
+    m.id += '+' + c.id;
+    m.snd = m.snd || c.snd; m.vib = m.vib || c.vib;
+    m.fn = f1 || f2 ? () => { if (f1) f1(); if (f2) f2(); } : null;
+  });
+  return Object.values(by);
+}
+function checkTimes() {
+  if (!S || S.mode !== 'z2') return [];
+  const every = S.opts.every * 60, total = S.opts.minutes * 60, out = [];
+  for (let t = every; t < total - 30; t += every) out.push(t);
+  return out;
+}
+function fireCues(now) {
+  if (!S || S.paused || S.done) return;
+  const ph = curPhase(), el = phaseEl(now) / 1000;
+  for (const c of cuesFor(ph)) {
+    const key = ph.key + ':' + c.id;
+    if (S.fired[key] || el < c.at) continue;
+    S.fired[key] = 1;
+    if (el - c.at <= 2.5) {
+      if (c.snd) Snd.play(c.snd);
+      if (c.vib) buzz(c.vib);
+      if (c.fn) c.fn();
+    }
+  }
+}
+function resetCues(ph) { Object.keys(S.fired).forEach(k => { if (k.startsWith(ph.key + ':')) delete S.fired[k]; }); }
+
+/* a speed instruction: the coach assumes you follow and moves its own speed with you */
+function command(delta, key, now, extra) {
+  S.speed = r1(clamp(S.speed + delta, 1, 16)); logSpeed();
+  S.lastCmdAt = now; S.cmds++;
+  S.hiSince = S.loSince = S.underSince = 0;
+  Snd.play('cmd'); buzz([90, 60, 90]);
+  Speaker.say((extra || []).concat([key]));
+  S.advice = key; S.adviceAt = now;
+  toast(`Speed ${sgn(delta)} → ${num(S.speed)} km/h`);
+  const v = $('#lv-speed'); if (v) { v.textContent = num(S.speed); const box = v.parentElement; box.classList.add('flash'); setTimeout(() => box.classList.remove('flash'), 900); }
+  persistActive();
+}
+function decide4(ph, at) {
+  const now = clock(), T = S.target, label = at === 2 ? 'm2' : (ph.n === 4 ? 'last' : 'm3');
+  if (!hrLive(now)) { Speaker.say([label, 'check']); return; }
+  const hr = HR.avg(now, 8);
+  if (at === 2) {
+    if (hr > T.m2Max) return command(-0.3, 'high3', now, [label]);
+    if (hr < T.m2Min) return command(0.3, 'low3', now, [label]);
+    S.advice = 'track'; S.adviceAt = now; return Speaker.say([label, 'track']);
+  }
+  if (hr > T.hi) return command(-0.3, 'high3', now, [label]);
+  if (ph.n === 4) {
+    if (S.opts.recovery === 'gelb') { S.advice = 'yellow_hold'; S.adviceAt = now; return Speaker.say([label, 'yellow_hold']); }
+    if (hr < T.lo + 2) return command(0.3, 'push3', now, [label]);
+    S.advice = 'hold_end'; S.adviceAt = now; return Speaker.say([label, 'hold_end']);
+  }
+  if (hr < T.m3Min) return command(0.3, 'low3', now, [label]);
+  S.advice = 'track'; S.adviceAt = now; Speaker.say([label, 'track']);
+}
+/* continuous checks between the checkpoints */
+function liveCoach(now) {
+  if (!S || S.paused) return;
+  signalWatch(now);
+  if (!hrLive(now)) return;
+  const ph = curPhase(), el = phaseEl(now) / 1000, Z = S.Z;
+  if (S.mode === '4x4') {
+    if (ph.type !== 'work') return;
+    const a5 = HR.avg(now, 5);
+    if (a5 != null && a5 >= S.target.danger && now - S.lastCmdAt > 45000) return command(-0.5, 'danger5', now);
+    if (el >= 185 && el < 210 && !S.said['early' + ph.n]) {
+      const a8 = HR.avg(now, 8);
+      if (a8 != null && a8 >= S.target.early && now - S.lastCmdAt > 15000) { S.said['early' + ph.n] = 1; return command(-0.3, 'ease3', now); }
+    }
+    return;
+  }
+  /* zone 2: smoothed over 30 s, wait about 90 s after each instruction because heart rate needs 1 to 2 minutes to settle */
+  if (now < S.z2Next) return;
+  S.z2Next = now + 5000;
+  const a10 = HR.avg(now, 10), a30 = HR.avg(now, 30), since = now - S.lastCmdAt;
+  if (a10 == null || a30 == null) return;
+  const cap = Z.z2hi + (ph.type === 'z2in' ? 3 : 0);
+  if (a10 > cap && HR.bpm > cap && since > 45000) return command(-0.2, 'z2_above', now);
+  if (ph.type !== 'z2' || el < 60) return;
+  S.hiSince = a30 > Z.aimHi + 1 ? (S.hiSince || now) : 0;
+  S.loSince = a30 < Z.aimLo - 2 ? (S.loSince || now) : 0;
+  S.underSince = a30 < Z.z2lo ? (S.underSince || now) : 0;
+  if (since < 90000) return;
+  if (S.underSince && now - S.underSince >= 30000) return command(0.2, 'z2_under', now);
+  if (S.hiSince && now - S.hiSince >= 60000) return command(-0.1, 'z2_high', now);
+  if (S.loSince && now - S.loSince >= 90000) return command(0.1, 'z2_low', now);
+}
+function signalWatch(now) {
+  if (S.hrSrc !== 'whoop') return;
+  const ok = HR.fresh(now);
+  if (!ok) {
+    if (!S.lostSince) S.lostSince = now;
+    if (!HR.lostSaid && now - S.lostSince > 8000) { HR.lostSaid = true; Speaker.say(['hr_lost']); if (HR.state === 'live') { HR.state = 'lost'; uiHr(); } }
+  } else {
+    if (HR.lostSaid) { HR.lostSaid = false; Speaker.say(['hr_back']); }
+    S.lostSince = 0;
+  }
+}
+function ensureLoop() {
+  if (loopId) return;
+  loopId = setInterval(() => {
+    if (!S || S.done) { clearInterval(loopId); loopId = null; return; }
+    const now = clock();
+    tick(now);
+    if (!S) return;
+    liveDyn(now);
+    if (Date.now() - lastSave > 5000) persistActive();
+  }, 250);
+}
+function persistActive() {
+  lastSave = Date.now();
+  if (S && !S.done && !S.demo) LS.set(K.active, Object.assign({}, S, {savedAt: lastSave}));
+  else if (!S || !S.demo) LS.del(K.active);
+}
+function finishSession(at, early) {
+  if (!S || S.done) return;
+  if (S.runSince != null) { integrate(at); S.accum += at - S.runSince; S.runSince = null; }
+  if (S.paused && S.pausedAt) { const len = Math.max(0, at - S.pausedAt); S.pauseMs += len; S.longestPause = Math.max(S.longestPause, len); }
+  S.done = true; S.endedAt = at; S.endedEarly = !!early;
+  const rec = buildRecord(S);
+  if (S.demo) { rec.id = DEMO_ID; rec.demo = true; demoRec = rec; }
+  else Store.saveSession(rec, true);
+  lastSummaryId = rec.id;
+  Snd.play('done'); buzz([200, 100, 200, 100, 600]);
+  Speaker.say(early ? ['saved'] : S.mode === '4x4' ? ['done4'] : ['done_z2']);
+  Wake.release();
+  closeSheet();
+  const wasDemo = !!S.demo;
+  S = null;
+  if (wasDemo) HR.reset();
+  if (!wasDemo) LS.del(K.active);
+  go('summary');
+}
+function buildRecord(s) {
+  const moving = Math.round((s.endedAt - s.startedAt - s.pauseMs) / 1000);
+  const rec = {
+    v: 2, id: s.id, mode: s.mode, startedAt: s.startedAt, endedAt: s.endedAt,
+    durSec: Math.max(0, moving), pauseSec: Math.round(s.pauseMs / 1000), longestPauseSec: Math.round(s.longestPause / 1000),
+    recovery: s.opts.recovery || null, legsHeavy: !!s.opts.legsHeavy, hrMax: s.Z.max, hrRest: s.Z.rest,
+    target: s.mode === '4x4' ? {lo: s.target.lo, hi: s.target.hi} : {lo: s.Z.z2lo, hi: s.Z.z2hi, aimLo: s.Z.aimLo, aimHi: s.Z.aimHi},
+    incline: s.opts.incline, startSpeed: s.mode === '4x4' ? s.opts.startSpeed : s.opts.speed,
+    vestKg: s.mode === 'z2' ? (s.opts.vestKg || 0) : 0, plannedMin: s.mode === 'z2' ? s.opts.minutes : 40,
+    intervals: s.intervals.map(iv => ({n: iv.n, startSpeed: iv.startSpeed, endSpeed: iv.endSpeed, endHr: iv.endHr, rpe: iv.rpe, bail: !!iv.bail, done: !!iv.done, skipped: !!iv.skipped, auto: !!iv.auto})),
+    checks: s.checks.map(c => ({min: c.min, hr: c.hr, speed: c.speed, talk: c.talk || 'ok'})),
+    hr5: s.hr5.slice(), spd: s.spd.slice(), marks: s.marks.slice(), hrSrc: s.hrSrc, cmds: s.cmds,
+    coolDone: s.mode === '4x4' ? !!(s.phases.find(p => p.type === 'cool') || {}).completed : null,
+    endedEarly: !!s.endedEarly, distKm: r2(s.dist), elevM: Math.round(s.elev), kcal: Math.round(s.kcal),
+    z5MinWhoop: null, note: '', updatedAt: Date.now()
+  };
+  if (!rec.hr5.some(isNum)) rec.hr5 = [];
+  return derive(rec);
+}
+
+/* ---- live actions ---- */
+function setSpeed(d) {
+  if (!S) return;
+  const now = clock();
+  tick(now); if (!S) return;
+  integrate(now);
+  S.speed = clamp(r1(S.speed + d), 0.5, 20);
+  logSpeed();
+  const el = $('#lv-speed'); if (el) el.textContent = num(S.speed);
+  persistActive();
+}
+function pauseToggle() {
+  if (!S) return;
+  const now = clock();
+  if (!S.paused) {
+    tick(now); if (!S) return;
+    integrate(now);
+    S.accum += now - S.runSince; S.runSince = null; S.paused = true; S.pausedAt = now;
+    Speaker.say(['paused']);
+    persistActive(); renderLive();
+    return;
+  }
+  const len = now - (S.pausedAt || now);
+  S.pauseMs += len; S.longestPause = Math.max(S.longestPause, len);
+  S.paused = false; S.pausedAt = null; S.closedPause = false; S.runSince = now; S.lastInt = now;
+  Wake.request();
+  persistActive(); renderLive();
+  const ph = curPhase();
+  if (S.mode === '4x4' && len >= 60000 && (ph.type === 'work' || ph.type === 'rec' || ph.key === 'easy2')) offerRewarm(len);
+  else Speaker.say(['resume']);
+}
+function offerRewarm(len) {
+  const ph = curPhase();
+  const btns = [{label: 'Re-warm for 2 min', act: 'rewarm', cls: 'primary'}];
+  if (ph.type === 'work') btns.push({label: 'Restart this interval', act: 'restartPhase'});
+  btns.push({label: 'Just continue', act: 'sheetClose'});
+  confirmSheet({title: 'Long break (' + hms(len / 1000) + ')', text: 'After a longer break your legs are cold. A short re-warm protects the next interval.', buttons: btns});
+}
+function doRewarm() {
+  if (!S) return;
+  const now = clock(), ph = curPhase();
+  const rw = {key: 'rw' + now.toString(36), type: 'warm', label: 'Re-warm', dur: 120, speed: Store.settings.warmSpeed, incl: S.opts.incline, rewarm: true};
+  integrate(now);
+  if (ph.type === 'work') { resetCues(ph); S.phases.splice(S.idx, 0, rw); }
+  else { ph.completed = true; S.phases.splice(S.idx + 1, 0, rw); S.idx++; }
+  S.accum = 0; S.runSince = S.paused ? null : now; S.lastInt = now;
+  closeSheet(); enterPhase(false); tick(now);
+}
+function restartPhase() {
+  if (!S) return;
+  const now = clock();
+  integrate(now);
+  resetCues(curPhase());
+  S.accum = 0; S.runSince = S.paused ? null : now; S.lastInt = now;
+  closeSheet(); enterPhase(false); tick(now);
+}
+function skipPhase() {
+  if (!S) return;
+  const now = clock();
+  tick(now); if (!S) return;
+  integrate(now);
+  const ph = curPhase();
+  if (ph.type === 'work') { const iv = S.intervals[ph.n - 1]; iv.endSpeed = S.speed; iv.skipped = true; planNext(ph.n); }
+  ph.skipped = true;
+  if (S.idx >= S.phases.length - 1) { finishSession(now, false); return; }
+  S.idx++; S.accum = 0; S.runSince = S.paused ? null : now; S.lastInt = now;
+  enterPhase(false); tick(now);
+}
+function backPhase() {
+  if (!S) return;
+  const now = clock();
+  tick(now); if (!S) return;
+  integrate(now);
+  if (phaseEl(now) > 5000 || S.idx === 0) { restartPhase(); return; }
+  const prev = S.phases[S.idx - 1];
+  prev.completed = false; prev.skipped = false; resetCues(prev);
+  if (prev.type === 'work') Object.assign(S.intervals[prev.n - 1], {done: false, skipped: false, bail: false});
+  S.idx--; S.accum = 0; S.runSince = S.paused ? null : now; S.lastInt = now;
+  enterPhase(false); tick(now);
+}
+function bailDo() {
+  if (!S) return;
+  const now = clock();
+  tick(now); if (!S) return;
+  const ph = curPhase(); if (ph.type !== 'work') return;
+  integrate(now);
+  const iv = S.intervals[ph.n - 1]; iv.bail = true; iv.endSpeed = S.speed;
+  if (hrLive(now)) { const m = HR.max(now, 20); if (m != null) { iv.endHr = Math.round(m); iv.auto = true; } }
+  planNext(ph.n);
+  ph.completed = true;
+  Speaker.say(['bail']);
+  toast('Quick key to 3.5 to 4 and keep walking. Next interval 0.5 slower.');
+  if (S.idx >= S.phases.length - 1) { finishSession(now, false); return; }
+  S.idx++; S.accum = 0; S.runSince = S.paused ? null : now; S.lastInt = now;
+  enterPhase(false); tick(now);
+}
+function armedTwice(k, msg) {
+  const n = Date.now();
+  if (armed.k === k && n - armed.t < 2600) { armed = {k: null, t: 0}; return true; }
+  armed = {k, t: n}; toast(msg); return false;
+}
+
+/* ================= sheets, toast ================= */
+function showSheet(html, modal) {
+  clearTimeout(sheetTimer);
+  const sh = $('#sheet');
+  sh.innerHTML = '<div class="sheet-in">' + html + '</div>';
+  sh.hidden = false;
+  sh.setAttribute('aria-modal', modal ? 'true' : 'false');
+  $('#sheet-back').hidden = !modal;
+  const f = sh.querySelector('[data-focus]') || sh.querySelector('button');
+  if (f) setTimeout(() => { try { f.focus({preventScroll: true}); } catch (e) {} }, 30);
+  const sel = sh.querySelector('.chips.scroll [aria-pressed="true"]');
+  if (sel) sel.scrollIntoView({block: 'nearest', inline: 'center'});
+}
+function closeSheet() { clearTimeout(sheetTimer); const sh = $('#sheet'); sh.hidden = true; sh.innerHTML = ''; $('#sheet-back').hidden = true; sheetState = null; }
+function confirmSheet({title, text, buttons}) {
+  sheetState = {kind: 'confirm'};
+  showSheet(`<div class="sh-head"><h2 id="sheet-title">${esc(title)}</h2></div>${text ? `<p class="sh-text">${esc(text)}</p>` : ''}<div class="sh-actions col">${buttons.map(b => `<button class="btn ${b.cls || ''}" data-act="${b.act}">${esc(b.label)}</button>`).join('')}</div>`, true);
+}
+let toastTimer = null;
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 3800);
+}
+
+function hrSheetHTML() {
+  const st = sheetState, lo = st.lo, hi = st.hi, vals = [];
+  for (let v = lo - 9; v <= hi + 5; v++) vals.push(v);
+  return `<div class="sh-head"><h2 id="sheet-title">Finish heart rate, interval ${st.n}</h2><button class="icon" data-act="sheetClose" aria-label="Enter later">${ICON.close}</button></div>
+  <p class="sh-text">Highest value at the end, from WHOOP. Target ${lo} to ${hi}.</p>
+  <div class="hr-step"><button class="stp" data-act="hrStep" data-d="-1" aria-label="Heart rate minus 1">−</button><output class="hr-val" id="sh-val" aria-live="polite">${st.val}</output><button class="stp" data-act="hrStep" data-d="1" aria-label="Heart rate plus 1">+</button></div>
+  <div class="chips scroll" role="group" aria-label="Pick heart rate">${vals.map(v => `<button class="chip${v >= lo && v <= hi ? ' tgt' : ''}" data-act="hrSet" data-v="${v}" aria-pressed="${v === st.val}">${v}</button>`).join('')}</div>
+  <div class="sh-label">Effort at the end (out of 10)</div>
+  <div class="chips grid5" role="group" aria-label="Effort">${[6, 7, 8, 9, 10].map(v => `<button class="chip" data-act="rpe" data-v="${v}" aria-pressed="${v === st.rpe}">${v}</button>`).join('')}</div>
+  <div class="sh-actions"><button class="btn" data-act="sheetClose">Later</button><button class="btn primary" data-act="hrSave" data-focus>Save</button></div>`;
+}
+function openHrSheet(n, ctx, recId) {
+  let lo, hi, iv;
+  if (ctx === 'live') { if (!S) return; iv = S.intervals[n - 1]; lo = S.target.lo; hi = S.target.hi; }
+  else { const rec = recById(recId); if (!rec) return; iv = rec.intervals[n - 1]; lo = rec.target.lo; hi = rec.target.hi; }
+  if (!iv) return;
+  const prev = ctx === 'live' ? S.intervals.slice(0, n - 1).reverse().find(x => isNum(x.endHr)) : null;
+  sheetState = {kind: 'hr', ctx, n, id: recId, lo, hi, val: isNum(iv.endHr) ? iv.endHr : prev ? prev.endHr : Math.round((lo + hi) / 2), rpe: isNum(iv.rpe) ? iv.rpe : null};
+  showSheet(hrSheetHTML(), ctx !== 'live');
+}
+function hrSave() {
+  const st = sheetState; if (!st || st.kind !== 'hr') return;
+  if (st.ctx === 'live') {
+    if (!S) { closeSheet(); return; }
+    const iv = S.intervals[st.n - 1];
+    iv.endHr = st.val; iv.auto = false; if (st.rpe != null) iv.rpe = st.rpe;
+    let msg = `Interval ${st.n}: ${st.val} saved.`;
+    const plan = planNext(st.n);
+    if (plan && !iv.bail) {
+      const {nx, adj} = plan;
+      msg = adj > 0 ? `Below ${st.lo}. Start interval ${nx.n} at ${num(nx.speed)} (+0.3).` : adj < 0 ? `Above ${st.hi}. Start interval ${nx.n} at ${num(nx.speed)} (−0.3).` : `On target. Interval ${nx.n} at ${num(nx.speed)} again.`;
+    }
+    closeSheet(); toast(msg); persistActive(); renderLive();
+  } else {
+    const rec = recById(st.id); if (!rec) { closeSheet(); return; }
+    const iv = rec.intervals[st.n - 1];
+    iv.endHr = st.val; iv.auto = false; if (st.rpe != null) iv.rpe = st.rpe;
+    derive(rec); closeSheet(); saveRec(rec);
+  }
+}
+function checkSheetHTML() {
+  const st = sheetState, Z = st.Z, vals = [];
+  for (let v = Z.z2lo - 6; v <= Z.z2hi + 6; v++) vals.push(v);
+  return `<div class="sh-head"><h2 id="sheet-title">Heart rate check · minute ${st.minute}</h2><button class="icon" data-act="sheetClose" aria-label="Skip">${ICON.close}</button></div>
+  <p class="sh-text">Aim for ${Z.aimLo} to ${Z.aimHi}. Zone 2 tops out at ${Z.z2hi}.</p>
+  <div class="hr-step"><button class="stp" data-act="hrStep" data-d="-1" aria-label="Heart rate minus 1">−</button><output class="hr-val" id="sh-val" aria-live="polite">${st.val}</output><button class="stp" data-act="hrStep" data-d="1" aria-label="Heart rate plus 1">+</button></div>
+  <div class="chips scroll" role="group" aria-label="Pick heart rate">${vals.map(v => `<button class="chip${v >= Z.aimLo && v <= Z.aimHi ? ' tgt' : ''}" data-act="hrSet" data-v="${v}" aria-pressed="${v === st.val}">${v}</button>`).join('')}</div>
+  <div class="sh-label">Talk test</div>
+  <div class="chips grid2" role="group" aria-label="Talk test"><button class="chip txt" data-act="talk" data-v="ok" aria-pressed="${st.talk === 'ok'}">Full sentences work</button><button class="chip txt" data-act="talk" data-v="kurz" aria-pressed="${st.talk === 'kurz'}">Only short sentences</button></div>
+  <div class="sh-actions"><button class="btn" data-act="sheetClose">Later</button><button class="btn primary" data-act="chkSave" data-focus>Save</button></div>`;
+}
+function openCheckSheet(auto) {
+  if (!S || S.mode !== 'z2') return;
+  if (sheetState && sheetState.kind !== 'chk') return;
+  const last = S.checks[S.checks.length - 1];
+  sheetState = {kind: 'chk', Z: S.Z, val: last ? last.hr : S.Z.aimLo, talk: 'ok', minute: Math.max(1, Math.round(sessionEl(clock()) / 60000)), auto: !!auto};
+  showSheet(checkSheetHTML(), false);
+  if (auto) sheetTimer = setTimeout(() => { if (sheetState && sheetState.kind === 'chk') closeSheet(); }, 90000);
+}
+function chkSave() {
+  const st = sheetState; if (!st || st.kind !== 'chk' || !S) { closeSheet(); return; }
+  const Z = S.Z, c = {min: st.minute, hr: st.val, speed: S.speed, talk: st.talk};
+  S.checks.push(c);
+  let msg;
+  if (c.hr > Z.z2hi || c.talk === 'kurz') { msg = `Too high. Slow down 0.2 to ${num(r1(S.speed - 0.2))}.`; S.advice = 'z2_above'; }
+  else if (c.hr < Z.z2lo) { msg = `Below Zone 2. Speed up 0.2 to ${num(r1(S.speed + 0.2))}.`; S.advice = 'z2_under'; }
+  else if (c.hr < Z.aimLo) { msg = 'Low end of Zone 2. Fine, or add 0.1.'; S.advice = 'z2_low'; }
+  else if (c.hr > Z.aimHi) { msg = 'High end of Zone 2. Hold it, no faster.'; S.advice = 'z2_high'; }
+  else { msg = 'Right on target. Keep it.'; S.advice = 'z2_good'; }
+  S.adviceAt = clock();
+  closeSheet(); toast(msg); persistActive(); renderLive();
+}
+
+/* ================= views ================= */
+const ROUTES = ['today', 'prep-4x4', 'prep-z2', 'live', 'summary', 'history', 'learn', 'setup'];
+function route() { const h = (location.hash || '').replace(/^#/, ''); return ROUTES.includes(h) ? h : 'today'; }
+function go(h) { if (route() === h && location.hash === '#' + h) render(); else location.hash = h; }
+
+function zoneBarHTML(Z) {
+  return `<div class="zbar" role="list" aria-label="Heart rate zones">${Z.list.map(z => `<div class="zseg" role="listitem" style="--zc:var(--z${z.n})" aria-label="Zone ${z.n}: ${z.lo} to ${z.hi}"><span class="zn">Zone ${z.n}</span><span class="zr">${z.lo}</span><span class="zt">to ${z.hi}</span></div>`).join('')}</div>`;
+}
+function sessionsOn(day) { return Store.sessions.filter(s => sameDay(new Date(s.startedAt), day)); }
+function weekStats(ref) {
+  const a = weekStart(ref), b = addDays(a, 7);
+  const ss = Store.sessions.filter(s => s.startedAt >= a.getTime() && s.startedAt < b.getTime());
+  return {
+    a, ss,
+    n4: ss.filter(s => s.mode === '4x4' && s.durSec >= 600).length,
+    z2: Math.round(ss.filter(s => s.mode === 'z2').reduce((t, s) => t + s.durSec / 60, 0)),
+    z5: ss.filter(s => s.mode === '4x4').reduce((t, s) => t + (isNum(s.z5MinWhoop) ? s.z5MinWhoop : s.z5Min || 0), 0)
+  };
+}
+function weekStripHTML(ref) {
+  const a = weekStart(ref), plan = Store.settings.plan, today = new Date();
+  return `<ol class="week">${DAYS.map((dn, i) => {
+    const day = addDays(a, i), t = plan[i], ss = sessionsOn(day);
+    const doneT = ss.some(s => s.mode === t);
+    const extra = !doneT && ss.length > 0;
+    const isToday = sameDay(day, today);
+    const mk = doneT ? `<span class="dm done" title="done">${ICON.check}</span>` : extra ? `<span class="dm extra" title="${esc(ss.map(s => s.mode === '4x4' ? '4×4' : 'Zone 2').join(', '))}">${ICON.check}</span>` : (t === '4x4' || t === 'z2') ? '<span class="dm"></span>' : '<span class="dm na"></span>';
+    return `<li class="day${isToday ? ' today' : ''}" data-t="${t}" aria-label="${dn}: ${PLAN_LONG[t]}${doneT || extra ? ', done' : ''}"><span class="dn">${dn}</span><span class="dt">${PLAN_SHORT[t]}</span>${mk}</li>`;
+  }).join('')}</ol>`;
+}
+function kpisHTML(ws) {
+  const st = Store.settings, plan4 = st.plan.filter(p => p === '4x4').length;
+  const p4 = plan4 ? clamp(ws.n4 / plan4, 0, 1) : 0, pz = st.z2Week ? clamp(ws.z2 / st.z2Week, 0, 1) : 0;
+  return `<div class="kpis">
+    <div class="kpi"><span class="k">4×4</span><span class="v">${ws.n4}<small>/${plan4}</small></span><div class="mbar" style="--mc:var(--flag)"><i style="width:${(p4 * 100).toFixed(0)}%"></i></div></div>
+    <div class="kpi"><span class="k">Zone 2</span><span class="v">${ws.z2}<small>/${st.z2Week} min</small></span><div class="mbar" style="--mc:var(--spruce)"><i style="width:${(pz * 100).toFixed(0)}%"></i></div></div>
+    <div class="kpi"><span class="k">Zone 5</span><span class="v">${num(ws.z5, ws.z5 % 1 ? 1 : 0)}<small> min</small></span><div class="mbar" style="--mc:var(--z5)"><i style="width:${clamp(ws.z5 / Math.max(1, plan4 * 9) * 100, 0, 100).toFixed(0)}%"></i></div></div>
+  </div>`;
+}
+function runbarHTML() {
+  if (!S || S.done || S.closedPause) return '';
+  return `<a class="runbar" href="#live"><span class="rb-dot" aria-hidden="true"></span><span class="rb-t" id="rb-text">${esc(runbarText(clock()))}</span>${ICON.arrow}</a>`;
+}
+function runbarText(now) { const ph = curPhase(); return `${S.paused ? 'Paused' : 'Running'} · ${ph.label} · ${cd(ph.dur - phaseEl(now) / 1000)}`; }
+function resumeCardHTML() {
+  if (!S || !S.closedPause) return '';
+  const ph = curPhase();
+  return `<div class="card" style="border-color:var(--amber)"><span class="eyebrow">Interrupted</span><h3>${S.mode === '4x4' ? 'Norwegian 4×4' : 'Zone 2'} from ${timeOf(new Date(S.startedAt))}</h3><p class="muted small">The app was closed. The session is paused at “${esc(ph.label)}”.</p><div class="btn-row"><button class="btn primary" data-act="resumeOpen">Resume</button><button class="btn" data-act="endSave">Save</button><button class="btn ghost" data-act="endDiscard">Discard</button></div></div>`;
+}
+function last4x4() { return Store.sessions.find(s => s.mode === '4x4' && s.durSec >= 600) || null; }
+
+/* heart rate source panel, used on Today, the prep screens and Setup */
+function hrPanelHTML(compact) {
+  const st = HR.state;
+  if (!ENV.bt) {
+    const framedMsg = ENV.framed && !ENV.btPolicy;
+    const body = framedMsg
+      ? `<p>Live heart rate from your WHOOP needs the coach app in Chrome. claude.ai blocks Bluetooth for pages like this one.</p>${APP_URL ? `<a class="btn" href="${esc(APP_URL)}" target="_blank" rel="noopener">Open the coach app</a><p class="small">Your history moves over with Copy all data and Import in Setup.</p>` : '<p class="small">Ask Claude to set up the coach app for you.</p>'}`
+      : '<p>This browser can’t read Bluetooth heart rate. Open the coach in Chrome on Android.</p>';
+    return `<div class="hrp" data-s="off"><div class="hrp-h"><span class="hrp-t"><span class="dot"></span>Heart rate: manual</span></div>${compact ? '' : body}${compact ? `<p class="small">${framedMsg ? 'Live WHOOP heart rate works in the coach app.' : 'Live heart rate needs Chrome on Android.'}</p>` : ''}</div>`;
+  }
+  if (st === 'live' || st === 'lost') {
+    return `<div class="hrp" data-s="${st}"><div class="hrp-h"><span class="hrp-t"><span class="dot"></span>${esc(HR.name || 'WHOOP')}</span><span class="hrp-b" data-hrnum>${HR.bpm != null ? HR.bpm : '--'}<small>bpm</small></span></div>${st === 'lost' ? '<p>Signal lost. Reconnecting.</p>' : compact ? '' : '<p>Live. The coach steers you by this number.</p>'}<div class="btn-row">${st === 'lost' ? '<button class="btn" data-act="btConnect">Reconnect</button>' : ''}<button class="btn ghost" data-act="btDisconnect">Disconnect</button></div></div>`;
+  }
+  const busy = st === 'connecting';
+  return `<div class="hrp" data-s="${st}"><div class="hrp-h"><span class="hrp-t"><span class="dot"></span>${busy ? 'Connecting' : 'WHOOP not connected'}</span></div>
+    ${st === 'error' ? '<p>Couldn’t connect. Close the WHOOP app fully, check that Broadcast Heart Rate is on, then try again.</p>' : ''}
+    ${compact ? '' : '<ol><li>WHOOP app: turn on <strong>Broadcast Heart Rate</strong> in your device settings.</li><li>Tap Connect and pick your WHOOP.</li></ol>'}
+    <button class="btn green" data-act="btConnect" ${busy ? 'disabled' : ''}>${busy ? 'Connecting' : 'Connect WHOOP'}</button></div>`;
+}
+function uiHr() {
+  document.querySelectorAll('[data-hrpanel]').forEach(el => { el.innerHTML = hrPanelHTML(el.dataset.hrpanel === 'compact'); });
+  if (route() === 'live' && S) renderLive();
+}
+function hrDyn(now) {
+  document.querySelectorAll('[data-hrnum]').forEach(el => { el.innerHTML = (HR.bpm != null ? HR.bpm : '--') + '<small>bpm</small>'; });
+  if (S && route() === 'live') liveHrDyn(now);
+}
+
+function heroHTML() {
+  const st = Store.settings, Z = zonesOf(st), now = new Date(), di = dayIdx(now);
+  const t = st.plan[di], tm = st.plan[(di + 1) % 7], wd = now.toLocaleDateString(LOC, {weekday: 'long'});
+  const todays = sessionsOn(now), doneRec = todays.find(s => s.mode === t);
+  const l4 = last4x4(), h = l4 ? (Date.now() - l4.endedAt) / 3600e3 : null;
+  let title, lead, btns = '', extra = '', prof = '';
+  if (t === '4x4') {
+    title = 'Norwegian 4×4';
+    lead = `40 min at ${fmtIncl(st.incline)} %. Intervals from ${num(st.speed4x4)} km/h, finish heart rate ${Z.endLo} to ${Z.endHi}.`;
+    if (h != null && h < 48 && !doneRec) extra = `<p class="note warn">Your last 4×4 was ${Math.round(h)} h ago. Keep at least 48 h between them, Zone 2 is the better call today.</p>`;
+    prof = `<div class="hero-pf">${profileSVG(build4x4(st, {startSpeed: st.speed4x4}), {label: 'Today’s plan'})}<div class="pf-l"><span>10 min warm-up</span><span>4 × 4 min · 5 min cool-down</span></div></div>`;
+    btns = `<button class="btn red" data-act="prep4x4">Prepare</button><button class="btn" data-act="prepZ2">Zone 2 instead</button>`;
+  } else if (t === 'z2') {
+    title = 'Zone 2';
+    lead = `${st.z2Minutes} min incline walking, ${num(st.z2Speed)} km/h at ${fmtIncl(st.incline)} %. Heart rate ${Z.aimLo} to ${Z.aimHi}, never above ${Z.z2hi}.`;
+    prof = `<div class="hero-pf">${profileSVG(buildZ2(st, {speed: st.z2Speed, minutes: st.z2Minutes}), {label: 'Today’s plan'})}<div class="pf-l"><span>5 min easy start</span><span>${st.z2Minutes - 5} min Zone 2</span></div></div>`;
+    btns = `<button class="btn green" data-act="prepZ2">Prepare</button>`;
+  } else {
+    title = t === 'kraft' ? 'Strength' : 'Rest day';
+    if (tm === '4x4') {
+      lead = t === 'kraft' ? 'The 4×4 is tomorrow. Don’t take your legs to failure today.' : 'Rest counts too. The 4×4 is tomorrow.';
+      prof = `<div class="hero-pf"><span class="eyebrow">Tomorrow · from ${num(st.speed4x4)} km/h</span>${profileSVG(build4x4(st, {startSpeed: st.speed4x4}), {label: 'Tomorrow’s plan'})}</div>`;
+      btns = `<button class="btn" data-act="demo4x4">Preview tomorrow at 10× speed</button>`;
+    } else if (tm === 'z2') {
+      lead = (t === 'kraft' ? 'Cardio is optional today. ' : 'Rest counts too. ') + `Tomorrow: Zone 2, ${st.z2Minutes} min.`;
+    } else {
+      lead = t === 'kraft' ? 'Cardio is optional today.' : 'Rest counts too.';
+    }
+  }
+  if (doneRec) {
+    extra = `<span class="badge">${ICON.check.replace('<svg', '<svg width="16" height="16"')} Done${isNum(doneRec.score && doneRec.score.total) ? ' · score ' + doneRec.score.total : ''}</span>`;
+    prof = '';
+    btns = `<button class="btn primary" data-act="openSession" data-id="${esc(doneRec.id)}">See the summary</button>`;
+  }
+  return `<section class="hero" data-t="${t}"><span class="eyebrow">Today · ${esc(wd)}</span><h1>${title}</h1><p class="lead">${lead}</p>${extra}${prof}${btns ? `<div class="btn-row">${btns}</div>` : ''}</section>`;
+}
+function viewHome() {
+  const st = Store.settings, Z = zonesOf(st), now = new Date(), ws = weekStats(now);
+  return `${runbarHTML()}${resumeCardHTML()}
+  <div class="topline"><span class="eyebrow">${esc(dateLong(now))}</span><span class="sync" data-s="${Store.cloud}">${syncText()}</span></div>
+  ${heroHTML()}
+  <div data-hrpanel="compact">${hrPanelHTML(true)}</div>
+  <section class="section"><div class="sec-head"><h2>This week</h2><a href="#history">History</a></div>${weekStripHTML(now)}${kpisHTML(ws)}</section>
+  <section class="section"><h2>Start a session</h2><div class="modes">
+    <button class="mode" data-m="4x4" data-act="prep4x4"><span class="eyebrow">VO2max</span><span class="mk">4×4</span><span class="muted small">40 min · from ${num(st.speed4x4)} km/h · finish ${Z.endLo} to ${Z.endHi}</span><span class="go">Prepare ${ICON.arrow}</span></button>
+    <button class="mode" data-m="z2" data-act="prepZ2"><span class="eyebrow">Base</span><span class="mk">Zone 2</span><span class="muted small">${st.z2Minutes} min · ${num(st.z2Speed)} km/h · heart rate ${Z.z2lo} to ${Z.z2hi}</span><span class="go">Prepare ${ICON.arrow}</span></button>
+  </div></section>
+  <section class="section"><div class="sec-head"><h2>Your zones</h2><span class="muted small">Max ${Z.max} · rest ${Z.rest}</span></div>${zoneBarHTML(Z)}<p class="muted small">Calculated like WHOOP, from your heart rate reserve. Change them in Setup.</p></section>`;
+}
+
+/* ---- prep ---- */
+const CK4 = [
+  ['shoes', 'Shoes double-knotted'],
+  ['clip', 'Safety clip on your waistband'],
+  ['water', 'Water within reach'],
+  ['strap', 'WHOOP strap snug, a finger above the wrist bone'],
+  ['meal', 'Last big meal at least 90 min ago']
+];
+const CKZ = [
+  ['water', 'Water within reach'],
+  ['strap', 'WHOOP strap snug'],
+  ['anki', 'Anki and Brain.fm ready, coach in a floating window or split screen'],
+  ['rails', 'Hands stay off the rails']
+];
+function checklistHTML(list, state) {
+  const n = list.filter(([k]) => state[k]).length;
+  return `<div class="sec-head"><h2>Checklist</h2><span class="muted small" id="ck-count">${n} of ${list.length}</span></div><div class="checks">${list.map(([k, t]) => `<button class="ck" role="checkbox" aria-checked="${!!state[k]}" data-act="ck" data-k="${k}"><span class="box">${ICON.check}</span><span class="t">${esc(t)}</span></button>`).join('')}</div>`;
+}
+function soundRowHTML() {
+  const st = Store.settings;
+  const tg = (k, label, hint) => `<button class="toggle" role="switch" aria-checked="${st[k]}" data-act="sndTog" data-k="${k}"><span class="tl"><span class="row-k">${label}</span><span class="th">${hint}</span></span><span class="sw"></span></button>`;
+  return `${tg('sound', 'Sound', 'Voice, tones and countdown')}${tg('voice', 'Coach voice', VOICE_NAMES[st.voiceName] + ', change it in Setup')}${tg('vibrate', 'Vibration', 'On every change')}<button class="btn" data-act="sndTest">Test sound</button><p class="muted small">Sound only plays while the coach is visible. Next to Anki, keep it in a floating window or split screen.</p>`;
+}
+function recNote() {
+  const Z = zonesOf(Store.settings), l4 = last4x4(), h = l4 ? (Date.now() - l4.endedAt) / 3600e3 : null;
+  const gap = h != null && h < 48 ? `<p class="note warn">Your last 4×4 was ${Math.round(h)} h ago. Keep at least 48 h between them. If you still go, cap it at yellow.</p>` : '';
+  const r = UI4.rec;
+  const txt = r === 'gruen' ? `<p class="note">Full session. Finish heart rate ${Z.endLo} to ${Z.endHi}, Zone 5 starts at ${Z.z5}.</p>` : r === 'gelb' ? `<p class="note warn">Capped. Finish heart rate ${Z.yLo} to ${Z.yHi}, no push in interval 4.</p>` : r === 'rot' ? '<p class="note stop">No 4×4 today. Zone 2 will do you more good.</p>' : '<p class="note">Pick today’s WHOOP recovery.</p>';
+  return txt + gap;
+}
+function viewPrep4x4() {
+  const st = Store.settings;
+  if (!UI4) UI4 = {rec: null, legs: false, speed: st.speed4x4, ck: {}};
+  const startLabel = !UI4.rec ? 'Pick your recovery first' : UI4.rec === 'rot' ? 'Zone 2 instead (60 min)' : 'Start';
+  const startCls = UI4.rec === 'rot' ? 'green' : 'red';
+  return `${runbarHTML()}
+  <a class="link" href="#today">‹ Today</a>
+  <span class="eyebrow">Prepare</span><h1>Norwegian 4×4</h1>
+  <section class="section"><h2>WHOOP recovery</h2>
+    <div class="seg" role="radiogroup" aria-label="WHOOP recovery">${[['gruen', 'Green'], ['gelb', 'Yellow'], ['rot', 'Red']].map(([v, l]) => `<button class="seg-b" role="radio" data-v="${v}" aria-checked="${UI4.rec === v}" data-act="rec">${l}</button>`).join('')}</div>
+    <div style="display:flex;flex-direction:column;gap:8px">${recNote()}</div>
+  </section>
+  <section class="section"><h2>Heart rate</h2><div data-hrpanel="full">${hrPanelHTML(false)}</div></section>
+  <section class="section"><h2>Pace</h2>
+    <button class="toggle" role="switch" aria-checked="${UI4.legs}" data-act="legs"><span class="tl"><span class="row-k">Heavy legs from strength training</span><span class="th">Interval 1 starts 0.5 slower</span></span><span class="sw"></span></button>
+    <div class="card"><div class="row"><div class="row-l"><span class="row-k">Interval start speed</span><span class="row-h">Incline ${fmtIncl(st.incline)} %, walk, never jog</span></div>
+      <div class="stepper"><button data-act="p4spd" data-d="-0.1" aria-label="Start speed minus 0.1">−</button><output id="p4-speed">${num(UI4.speed)}</output><button data-act="p4spd" data-d="0.1" aria-label="Start speed plus 0.1">+</button></div></div></div>
+  </section>
+  <section class="section"><h2>Plan</h2>${profileSVG(build4x4(st, {startSpeed: UI4.speed}), {label: 'Plan'})}<div class="pf-l"><span>10 min warm-up</span><span>4 × 4 min · 5 min cool-down</span></div></section>
+  <section class="section">${checklistHTML(CK4, UI4.ck)}</section>
+  <section class="section"><h2>Sound</h2>${soundRowHTML()}</section>
+  <section class="section"><button class="btn xl ${startCls}" data-act="start4x4" ${UI4.rec ? '' : 'disabled'} id="p4-start">${startLabel}</button><p class="muted small">Stop right away if you feel chest pain or pressure, dizziness, palpitations, or shortness of breath that doesn’t match the effort.</p>
+  <button class="btn ghost" data-act="demo4x4">Test run at 10× speed</button><p class="muted small">About 4 minutes with every announcement and a simulated heart rate. Nothing is saved.</p></section>`;
+}
+function initUIZ() { const st = Store.settings; UIZ = {minutes: st.z2Minutes, speed: st.z2Speed, vest: st.vestKg, every: st.checkEvery, quiet: st.z2Quiet, ck: {}}; }
+function viewPrepZ2() {
+  const st = Store.settings, Z = zonesOf(st);
+  if (!UIZ) initUIZ();
+  const chips = (act, vals, cur, fmt) => vals.map(v => `<button class="chip" data-act="${act}" data-v="${v}" aria-pressed="${v === cur}">${fmt(v)}</button>`).join('');
+  const live = HR.mode === 'ble' && HR.state === 'live';
+  return `${runbarHTML()}
+  <a class="link" href="#today">‹ Today</a>
+  <span class="eyebrow">Prepare</span><h1>Zone 2</h1>
+  <p class="muted">Aim for ${Z.aimLo} to ${Z.aimHi}. Zone 2 runs from ${Z.z2lo} to ${Z.z2hi}. You should still be able to talk in full sentences.</p>
+  <section class="section"><h2>Heart rate</h2><div data-hrpanel="full">${hrPanelHTML(false)}</div></section>
+  <section class="section"><h2>Duration</h2><div class="chips">${chips('zMin', [45, 60, 75, 90], UIZ.minutes, v => v + ' min')}</div></section>
+  <section class="section"><h2>Speed and vest</h2>
+    <div class="card"><div class="rows">
+      <div class="row"><div class="row-l"><span class="row-k">Speed</span><span class="row-h">at ${fmtIncl(st.incline)} %${live ? ', the coach fine-tunes it' : ''}</span></div><div class="stepper"><button data-act="zSpd" data-d="-0.1" aria-label="Speed minus 0.1">−</button><output id="z-speed">${num(UIZ.speed)}</output><button data-act="zSpd" data-d="0.1" aria-label="Speed plus 0.1">+</button></div></div>
+      <div class="row"><div class="row-l"><span class="row-k">Weight vest</span><span class="row-h">Zone 2 only, build the load slowly</span></div></div>
+    </div><div class="chips">${chips('zVest', [0, 5, 10, 15, 20], UIZ.vest, v => v ? v + ' kg' : 'none')}</div></div>
+  </section>
+  <section class="section"><h2>Announcements</h2>
+    <button class="toggle" role="switch" aria-checked="${UIZ.quiet}" data-act="zQuiet"><span class="tl"><span class="row-k">Only speed changes</span><span class="th">Skips halfway, sip and 10 minutes left</span></span><span class="sw"></span></button>
+    ${live ? '' : `<p class="muted small">Without live heart rate the coach asks for a check every few minutes.</p><div class="chips">${chips('zEvery', [5, 10, 15], UIZ.every, v => 'every ' + v + ' min')}</div>`}
+  </section>
+  <section class="section"><h2>Plan</h2>${profileSVG(buildZ2(st, {speed: UIZ.speed, minutes: UIZ.minutes}), {label: 'Zone 2 plan'})}<div class="pf-l"><span>5 min easy start</span><span>${UIZ.minutes - 5} min Zone 2</span></div></section>
+  <section class="section">${checklistHTML(CKZ, UIZ.ck)}</section>
+  <section class="section"><h2>Sound</h2>${soundRowHTML()}</section>
+  <section class="section"><button class="btn xl green" data-act="startZ2">Start</button>
+  <button class="btn ghost" data-act="demoZ2">Test run at 10× speed</button><p class="muted small">Simulated heart rate, so you hear how the coach steers you. Nothing is saved.</p></section>`;
+}
+
+/* ---- live ---- */
+function targetOf(ph) {
+  const Z = S.Z, T = S.target;
+  switch (ph.type) {
+    case 'warm': return ph.key === 'warm' ? ['Heart rate', 'about 140'] : ['Heart rate', 'easy'];
+    case 'pick': return ['Heart rate', 'brief rise'];
+    case 'work': return ['Finish', T.lo + ' to ' + T.hi];
+    case 'rec': return ['Drops to', 'about ' + Z.recTo];
+    case 'cool': return ['Heart rate', 'below ' + Z.coolTo];
+    case 'z2in': return ['Heart rate', Z.z2lo + ' to ' + Z.aimLo];
+    case 'z2': return ['Aim · max ' + Z.z2hi, Z.aimLo + ' to ' + Z.aimHi];
+  }
+  return ['', ''];
+}
+function bandOf(ph) {
+  const Z = S.Z, T = S.target;
+  switch (ph.type) {
+    case 'work': return [T.lo, T.hi];
+    case 'z2': return [Z.aimLo, Z.aimHi];
+    case 'z2in': return [Z.z2lo, Z.aimLo];
+    case 'rec': return [Z.recTo - 10, Z.recTo + 10];
+    case 'cool': return [90, Z.coolTo];
+    default: return [130, 145];
+  }
+}
+function coachHTML(ph, el) {
+  const Z = S.Z, T = S.target, b = v => `<b>${v}</b>`, nx = S.phases[S.idx + 1], left = ph.dur - el, live = hrLive(clock());
+  if (S.paused) return 'Paused. Slow the belt to a walk or stop it. Tap Resume when you’re ready.';
+  if (nx && nx.type === 'work' && left <= 12 && ph.dur > 15) return `Speed up now to ${b(num(nx.speed) + ' km/h')}. The belt needs a moment.`;
+  if (S.advice && clock() - S.adviceAt < 40000) {
+    const a = {high3: `Too high. Down by 0.3 to ${b(num(S.speed))}.`, low3: `A bit low. Up by 0.3 to ${b(num(S.speed))}.`, push3: `Push. Up by 0.3 to ${b(num(S.speed))}. 9 out of 10, not 10.`, ease3: `Easing off by 0.3 to ${b(num(S.speed))}.`, danger5: `Heart rate very high. Down by 0.5 to ${b(num(S.speed))}.`, track: 'On track. Hold this pace.', hold_end: 'Hold it to the end. 9 out of 10, not 10.', yellow_hold: 'Yellow day. Steady to the end, no push.', z2_above: `Above Zone 2. Down by 0.2 to ${b(num(S.speed))}.`, z2_high: `A bit high. Down by 0.1 to ${b(num(S.speed))}.`, z2_low: `A bit low. Up by 0.1 to ${b(num(S.speed))}.`, z2_under: `Below Zone 2. Up by 0.2 to ${b(num(S.speed))}.`, z2_good: 'Right in the zone. Keep walking.'}[S.advice];
+    if (a) return a;
+  }
+  if (S.mode === '4x4') {
+    switch (ph.type) {
+      case 'warm':
+        if (ph.rewarm) return `Easy re-warm at ${b(num(ph.speed))}. The interval follows.`;
+        if (ph.key === 'warm') { const p = S.phases.find(x => x.type === 'pick'); return el < 300 ? `Easy walking at ${b(fmtIncl(ph.incl) + ' %')}. Heart rate settles around ${b('140')}.` : `Two 30 s pickups at ${b(num(p ? p.speed : S.opts.startSpeed))} come next, so the jump doesn’t hit cold legs.`; }
+        return `Back to easy at ${b(num(ph.speed))}. Hands off the rails from here on.`;
+      case 'pick': return `Pickup at ${b(num(ph.speed))}. Short quick steps, arms active.`;
+      case 'work':
+        if (live) return el < 120 ? `Just walk. I check your heart rate at ${b('minute 2')}. Hands off the rails, walk, never jog.` : `Target at the end ${b(T.lo + ' to ' + T.hi)}. I tell you if you need to change anything.`;
+        if (el < 120) return `Ignore your heart rate until ${b('minute 2')}, heart and WHOOP lag behind. Hands off the rails, walk, never jog.`;
+        if (el < 180) return `Minute 2 check: above ${b(T.m2Max)}? Then ${b('down 0.3')}. Otherwise hold.`;
+        if (ph.n < 4 || S.opts.recovery === 'gelb') return `Minute 3 check: below ${b(T.m3Min)}? Then ${b('up 0.3')}. At ${b(T.early)} before 3:30, down 0.3 again. Target ${b(T.lo + ' to ' + T.hi)}.`;
+        return `Last minute: below ${b(T.lo)}? ${b('Up 0.3')} and push. Effort ${b('9 of 10')}, not 10. Target ${b(T.lo + ' to ' + T.hi)}.`;
+      case 'rec': return `Keep walking, never stand still. Drink. Heart rate drops toward ${b(Z.recTo)}.${nx && nx.type === 'work' ? ` Next interval at ${b(num(nx.speed) + ' km/h')}.` : ''}`;
+      case 'cool': return `Bring the incline down step by step, ${b('3.5 to 4 km/h')}. Step off once your heart rate is below ${b(Z.coolTo)}. Drink before the sauna.`;
+    }
+    return '';
+  }
+  if (ph.type === 'z2in') return `Easy start at ${b(num(ph.speed))}. Let your heart rate rise slowly to ${b(Z.z2lo + ' to ' + Z.aimLo)}.`;
+  if (live) return `Just walk and do your cards. I speak up when you need to change speed. Aim ${b(Z.aimLo + ' to ' + Z.aimHi)}.`;
+  return `Aim for ${b(Z.aimLo + ' to ' + Z.aimHi)}, never above ${b(Z.z2hi)}. Full sentences should work. Hands off the rails.`;
+}
+function hrChartSVG(o) {
+  /* o: {hr5, totalSec, band:[lo,hi], aim:[lo,hi]|null, z5, marks, W, H} */
+  const W = o.W || 340, H = o.H || 160, pl = 34, pr = 10, pt = 14, pb = 24;
+  const vals = o.hr5.filter(isNum);
+  if (!vals.length) return '';
+  const fixed = [o.band && o.band[0], o.band && o.band[1], o.z5].filter(isNum);
+  let lo = Math.min(...vals, ...fixed) - 4, hi = Math.max(...vals, ...fixed) + 4;
+  lo = Math.floor(lo / 5) * 5; hi = Math.ceil(hi / 5) * 5;
+  const total = Math.max(o.totalSec, o.hr5.length * 5, 60);
+  const x = s => pl + clamp(s / total, 0, 1) * (W - pl - pr);
+  const y = v => pt + (1 - (v - lo) / (hi - lo)) * (H - pt - pb);
+  let path = '', pen = false;
+  o.hr5.forEach((v, i) => { if (isNum(v)) { path += (pen ? 'L' : 'M') + x(i * 5).toFixed(1) + ',' + y(v).toFixed(1); pen = true; } else pen = false; });
+  const minStep = total > 3600 ? 30 : total > 1800 ? 15 : total > 600 ? 10 : 5, ticks = [];
+  for (let m = 0; m * 60 <= total; m += minStep) ticks.push(m);
+  const work = (o.marks || []).map((m, i, arr) => m[1] === 'work' ? [m[0], (arr[i + 1] ? arr[i + 1][0] : m[0] + 240)] : null).filter(Boolean);
+  const lastI = (() => { for (let i = o.hr5.length - 1; i >= 0; i--) if (isNum(o.hr5[i])) return i; return -1; })();
+  /* axis labels: target band first, then the range ends, skipping any that would overlap */
+  const yl = [];
+  for (const v of (o.band || []).concat([lo, hi])) { if (yl.every(u => Math.abs(y(u) - y(v)) >= 13)) yl.push(v); }
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Heart rate over time, from ${Math.min(...vals)} to ${Math.max(...vals)} bpm">
+    ${work.map(([a, b]) => `<rect class="wk" x="${x(a).toFixed(1)}" y="${pt}" width="${Math.max(1, x(b) - x(a)).toFixed(1)}" height="${H - pt - pb}"/>`).join('')}
+    ${o.band ? `<rect class="${o.z5 ? 'tband' : 'aim'}" x="${pl}" y="${y(o.band[1]).toFixed(1)}" width="${W - pl - pr}" height="${Math.max(1, y(o.band[0]) - y(o.band[1])).toFixed(1)}"/>` : ''}
+    ${o.zone ? `<rect class="band" x="${pl}" y="${y(o.zone[1]).toFixed(1)}" width="${W - pl - pr}" height="${Math.max(1, y(o.zone[0]) - y(o.zone[1])).toFixed(1)}"/>` : ''}
+    ${o.z5 ? `<line class="z5l" x1="${pl}" x2="${W - pr}" y1="${y(o.z5).toFixed(1)}" y2="${y(o.z5).toFixed(1)}"/><text class="ax" x="${W - pr - 2}" y="${(y(o.z5) - 4).toFixed(1)}" text-anchor="end">Zone 5</text>` : ''}
+    <line class="gl" x1="${pl}" x2="${W - pr}" y1="${H - pb}" y2="${H - pb}"/>
+    ${yl.map(v => `<text class="ax" x="${pl - 6}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${v}</text>`).join('')}
+    ${ticks.map((m, i) => `<text class="ax" x="${x(m * 60).toFixed(1)}" y="${H - 6}" text-anchor="${i === ticks.length - 1 && m * 60 >= total - 30 ? 'end' : 'middle'}">${m}${i === ticks.length - 1 ? ' min' : ''}</text>`).join('')}
+    <path class="ln thin" d="${path}"/>
+    ${lastI >= 0 ? `<circle class="pt last" cx="${x(lastI * 5).toFixed(1)}" cy="${y(o.hr5[lastI]).toFixed(1)}" r="4"/>` : ''}
+  </svg>`;
+}
+function checksChartSVG(checks, Z, totalMin) {
+  const W = 340, H = 156, pl = 34, pr = 10, pt = 10, pb = 24;
+  const hrs = checks.filter(c => isNum(c.hr)).map(c => c.hr);
+  const lo = Math.min(Z.z2lo - 6, ...hrs.map(v => v - 3)), hi = Math.max(Z.z2hi + 5, ...hrs.map(v => v + 4));
+  const x = m => pl + clamp(m / totalMin, 0, 1) * (W - pl - pr);
+  const y = v => pt + (1 - (clamp(v, lo, hi) - lo) / (hi - lo)) * (H - pt - pb);
+  const step = totalMin > 60 ? 30 : 15, xt = [];
+  for (let m = 0; m <= totalMin; m += step) xt.push(m);
+  const pts = checks.filter(c => isNum(c.hr));
+  const line = pts.length > 1 ? `<polyline class="ln" points="${pts.map(c => x(c.min).toFixed(1) + ',' + y(c.hr).toFixed(1)).join(' ')}"/>` : '';
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Heart rate checks: ${esc(pts.map(c => 'minute ' + c.min + ' ' + c.hr).join(', ') || 'none yet')}">
+    <rect class="band" x="${pl}" y="${y(Z.z2hi).toFixed(1)}" width="${W - pl - pr}" height="${(y(Z.z2lo) - y(Z.z2hi)).toFixed(1)}"/>
+    <rect class="aim" x="${pl}" y="${y(Z.aimHi).toFixed(1)}" width="${W - pl - pr}" height="${(y(Z.aimLo) - y(Z.aimHi)).toFixed(1)}"/>
+    ${[Z.z2lo, Z.z2hi].map(v => `<line class="gl" x1="${pl}" x2="${W - pr}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text class="ax" x="${pl - 6}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${v}</text>`).join('')}
+    <line class="gl" x1="${pl}" x2="${W - pr}" y1="${H - pb}" y2="${H - pb}"/>
+    ${xt.map((m, i) => `<text class="ax" x="${x(m).toFixed(1)}" y="${H - 6}" text-anchor="${i === xt.length - 1 && m === totalMin ? 'end' : 'middle'}">${m}${i === xt.length - 1 ? ' min' : ''}</text>`).join('')}
+    ${line}
+    ${pts.map((c, i) => `<circle class="pt${i === pts.length - 1 ? ' last' : ''}" cx="${x(c.min).toFixed(1)}" cy="${y(c.hr).toFixed(1)}" r="4.5"/>`).join('')}
+    ${pts.length ? `<text class="lb" x="${clamp(x(pts[pts.length - 1].min), pl + 12, W - pr - 12).toFixed(1)}" y="${(y(pts[pts.length - 1].hr) - 10).toFixed(1)}" text-anchor="middle">${pts[pts.length - 1].hr}</text>` : ''}
+  </svg>`;
+}
+function soundIcon() { return S.soundMode === 'all' ? ICON.sndAll : S.soundMode === 'tones' ? ICON.sndTones : ICON.sndOff; }
+function soundLabel() { return S.soundMode === 'all' ? 'Voice and tones on. Tap for tones only.' : S.soundMode === 'tones' ? 'Tones only. Tap to mute.' : 'Muted. Tap for voice and tones.'; }
+function hrRowHTML() {
+  return `<div class="hrrow" id="lv-hr"><div class="hrbig"><span class="n" id="lv-hrn">--</span><span class="u">bpm</span></div><div class="hrr"><div class="hrr-t"><span id="lv-hrz">Waiting for heart rate</span><span id="lv-hrs">${S.hrSrc === 'sim' ? 'Simulated' : 'WHOOP live'}</span></div><div class="gauge" id="lv-gauge"></div></div></div>`;
+}
+function viewLive() {
+  const ph = curPhase(), Z = S.Z, is4 = S.mode === '4x4';
+  const nWork = S.phases.filter(p => p.type === 'work').length;
+  const stepTxt = is4 ? (ph.type === 'work' ? `Interval ${ph.n} of ${nWork}` : ph.type === 'rec' ? `Recovery after interval ${ph.n}` : ph.type === 'cool' ? 'Cool-down' : 'Warm-up') : (ph.type === 'z2in' ? 'Easy start' : `Zone 2 · ${S.opts.minutes} min`);
+  const [tk, tv] = targetOf(ph);
+  const incl = ph.type === 'cool' ? 'down' : fmtIncl(ph.incl) + ' %';
+  const nx = S.phases[S.idx + 1];
+  const nextTxt = nx ? `Next: ${nx.label} · ${cd(nx.dur)} · ${num(nx.speed)} km/h` : 'Next: done';
+  const step = is4 ? 0.3 : 0.1;
+  const withHr = S.hrSrc !== 'manual';
+  document.body.classList.toggle('has-hr', withHr);
+  let ticks = '';
+  if (ph.type === 'work') ticks = [0.5, 0.75].map(f => `<span class="tk" style="left:${f * 100}%"></span>`).join('');
+  if (ph.type === 'z2' && !withHr) { const off = offsetOf(S.idx); ticks = checkTimes().filter(t => t > off).map(t => `<span class="tk" style="left:${((t - off) / ph.dur * 100).toFixed(2)}%"></span>`).join(''); }
+  const marks = is4 || withHr ? [] : checkTimes().map(t => t / (S.opts.minutes * 60));
+  let z2b = '';
+  if (!is4) {
+    if (withHr) z2b = `<div class="card" id="lv-chart"><div class="sec-head"><h3>Heart rate</h3><span class="muted small">Aim ${Z.aimLo} to ${Z.aimHi}</span></div><div id="lv-chart-svg"></div></div>`;
+    else z2b = `<div class="z2b"><div class="z2-next"><span class="eyebrow">Next heart rate check</span><span class="v" id="lv-chk">--:--</span></div>${S.checks.length ? `<div class="card"><div class="sec-head"><h3>Your checks</h3><span class="muted small">Aim ${Z.aimLo} to ${Z.aimHi}</span></div>${checksChartSVG(S.checks, Z, S.opts.minutes)}</div>` : '<p class="muted small">The first heart rate check comes after ' + S.opts.every + ' minutes. Your values then show up here as a curve.</p>'}</div>`;
+  }
+  return `<section class="live" aria-label="Running session">
+    <div class="lv-top">
+      <div class="lv-title"><span class="lv-mode">${S.demo ? 'Test run · ' : ''}${is4 ? 'Norwegian 4×4' : 'Zone 2'} · <span id="lv-rem" class="tnum"></span></span><span class="lv-step">${esc(stepTxt)}</span></div>
+      <div class="lv-acts"><button class="icon" data-act="cycleSound" aria-label="${esc(soundLabel())}">${soundIcon()}</button><button class="icon" data-act="endAsk" aria-label="End session">${ICON.close}</button></div>
+    </div>
+    <button class="notice" id="lv-audio" data-act="unlockAudio" hidden>Sound is still muted. Tap here once.</button>
+    <div class="phase${S.paused ? ' paused' : ''}" id="lv-phase" data-type="${ph.type}">
+      <div class="ph-head"><span class="ph-name">${S.paused ? 'Paused' : esc(ph.label)}</span><span class="ph-of">of ${cd(ph.dur)}</span></div>
+      <div class="clock" id="lv-clock" role="timer" aria-label="Time left in this phase"></div>
+      <div class="bar" aria-hidden="true"><i id="lv-bar"></i>${ticks}</div>
+      <div class="targets"><div class="tg"><span class="k">Incline</span><span class="v">${incl}</span></div><div class="tg"><span class="k">${esc(tk)}</span><span class="v">${esc(tv)}</span></div></div>
+    </div>
+    ${withHr ? hrRowHTML() : ''}
+    <p class="coach" id="lv-coach" aria-live="polite"></p>
+    <div class="speed"><button data-act="spd" data-d="${-step}" aria-label="Speed minus ${num(step)}">−${num(step)}</button><div class="val"><span class="sv" id="lv-speed">${num(S.speed)}</span><span class="su">km/h on the belt</span></div><button data-act="spd" data-d="${step}" aria-label="Speed plus ${num(step)}">+${num(step)}</button></div>
+    ${z2b}
+    <div class="pf">${profileSVG(S.phases, {cur: S.idx, marks, label: 'Progress'})}<div class="pf-l"><span>Start</span><span id="lv-next">${esc(nextTxt)}</span></div></div>
+    <div class="ctrl"><button data-act="back" aria-label="Previous phase">${ICON.back}</button><button data-act="pause" class="pp${S.paused ? ' paused' : ''}">${S.paused ? ICON.play + ' Resume' : ICON.pause + ' Pause'}</button><button data-act="skip" aria-label="Skip phase">${ICON.skip}</button></div>
+    <div class="ctrl2">${withHr ? '' : '<button class="btn" data-act="hrNow">Enter heart rate</button>'}${is4 && ph.type === 'work' ? '<button class="btn warnb" data-act="bail">Legs gone</button>' : ''}</div>
+    <div class="lv-stats" id="lv-stats"></div>
+    <p class="wake" id="lv-wake"></p>
+  </section>`;
+}
+function clockHTML(str) { return str.split('').map(c => c === ':' ? '<span class="c">:</span>' : `<span class="d">${c}</span>`).join(''); }
+function renderLive() {
+  if (route() !== 'live' || !S) return;
+  $('#view').innerHTML = viewLive();
+  dyn = {};
+  liveDyn(clock());
+  liveHrDyn(clock(), true);
+  wakeUI();
+}
+function zoneColor(z) { return z ? `var(--z${z})` : 'var(--ink)'; }
+function liveHrDyn(now, force) {
+  if (!S || route() !== 'live') return;
+  const box = $('#lv-hr'); if (!box) return;
+  const live = hrLive(now), bpm = live ? HR.bpm : null, Z = S.Z, ph = curPhase();
+  const z = zoneOf(Z, bpm);
+  const key = [bpm, live, ph.key, HR.state].join('|');
+  if (!force && key === dyn.hrKey) return;
+  dyn.hrKey = key;
+  box.style.setProperty('--hc', live ? zoneColor(z) : 'var(--ink-3)');
+  $('#lv-hrn').textContent = bpm != null ? bpm : '--';
+  const lo = Z.list[0].lo - 10, hi = Z.max + 2, pct = v => clamp((v - lo) / (hi - lo) * 100, 0, 100);
+  const stops = Z.list.map(x => `var(--z${x.n}) ${pct(x.lo).toFixed(1)}% ${pct(x.hi + 1).toFixed(1)}%`).join(',');
+  const [b0, b1] = bandOf(ph);
+  $('#lv-gauge').innerHTML = `<span class="gt" style="background:linear-gradient(90deg,var(--deck-3) 0% ${pct(Z.list[0].lo).toFixed(1)}%,${stops})"></span><span class="gb" style="left:${pct(b0).toFixed(1)}%;width:${Math.max(1, pct(b1) - pct(b0)).toFixed(1)}%"></span>${bpm != null ? `<span class="gm" style="left:${pct(bpm).toFixed(1)}%"></span>` : ''}`;
+  const zt = $('#lv-hrz');
+  if (!live) zt.innerHTML = S.hrSrc === 'whoop' ? 'Signal lost, reconnecting' : 'Waiting for heart rate';
+  else { const tgt = bpm < b0 ? 'below target' : bpm > b1 ? 'above target' : 'on target'; zt.innerHTML = `<b>Zone ${z}</b> · ${tgt}`; }
+  $('#lv-hrs').textContent = S.hrSrc === 'sim' ? 'Simulated' : live ? 'WHOOP live' : 'WHOOP';
+}
+function liveDyn(now) {
+  if (!S) return;
+  const rb = $('#rb-text'); if (rb) rb.textContent = runbarText(now);
+  if (route() !== 'live') return;
+  const ph = curPhase(), el = phaseEl(now) / 1000, left = ph.dur - el;
+  const c = cd(left);
+  if (c !== dyn.clock) { dyn.clock = c; const e = $('#lv-clock'); if (e) e.innerHTML = clockHTML(c); }
+  const bar = $('#lv-bar'); if (bar) bar.style.width = clamp(el / ph.dur * 100, 0, 100).toFixed(2) + '%';
+  const rem = cd(remainingTotal(now) / 1000) + ' left';
+  if (rem !== dyn.rem) { dyn.rem = rem; const e = $('#lv-rem'); if (e) e.textContent = rem; }
+  const total = S.phases.reduce((a, p) => a + p.dur, 0), pos = (offsetOf(S.idx) + Math.min(el, ph.dur)) / total * 1000;
+  const pl = $('#pf-play'); if (pl) { pl.setAttribute('x1', pos.toFixed(1)); pl.setAttribute('x2', pos.toFixed(1)); }
+  const phEl = $('#lv-phase'); if (phEl) phEl.classList.toggle('ending', !S.paused && left <= 10);
+  const ch = coachHTML(ph, el);
+  if (ch !== dyn.coach) { dyn.coach = ch; const e = $('#lv-coach'); if (e) e.innerHTML = ch; }
+  const sv = $('#lv-speed'); if (sv && sv.textContent !== num(S.speed)) sv.textContent = num(S.speed);
+  liveHrDyn(now);
+  const sec = Math.floor(now / 1000);
+  if (sec !== dyn.sec) {
+    dyn.sec = sec;
+    const st = $('#lv-stats'); if (st) st.innerHTML = `<span><b>${num(S.dist, 2)}</b> km</span><span><b>${int(S.elev)}</b> m up</span><span>about <b>${int(S.kcal)}</b> kcal</span><span><b>${hms(sessionEl(now) / 1000)}</b> moving</span>`;
+    const au = $('#lv-audio'); if (au) au.hidden = !(Store.settings.sound && S.soundMode !== 'off' && !Snd.ready());
+    const chk = $('#lv-chk');
+    if (chk) { const se = sessionEl(now) / 1000, nt = checkTimes().find(t => t > se + 0.5); chk.textContent = nt != null ? cd(nt - se) : 'none left'; }
+    const cs = $('#lv-chart-svg');
+    if (cs && (sec % 5 === 0 || !dyn.chart)) { dyn.chart = 1; cs.innerHTML = S.hr5.some(isNum) ? hrChartSVG({hr5: S.hr5, totalSec: S.opts.minutes * 60, band: [S.Z.aimLo, S.Z.aimHi], zone: [S.Z.z2lo, S.Z.z2hi], W: 340, H: 140}) : '<p class="muted small">Your heart rate curve builds up here.</p>'; }
+  }
+}
+
+/* ---- summary ---- */
+function ringSVG(v) {
+  const R = 46, C = 2 * Math.PI * R, f = v == null ? 0 : clamp(v, 0, 100) / 100;
+  const col = v == null ? 'var(--ink-3)' : v >= 85 ? 'var(--spruce)' : v >= 70 ? 'var(--amber)' : 'var(--flag)';
+  return `<svg class="ring" viewBox="0 0 112 112" role="img" aria-label="Quick score ${v == null ? 'open' : v} of 100"><circle class="bg" cx="56" cy="56" r="${R}"/><circle class="fg" cx="56" cy="56" r="${R}" style="stroke:${col}" stroke-dasharray="${(C * f).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 56 56)"/><text class="rv" x="56" y="61" text-anchor="middle">${v == null ? '?' : v}</text><text class="ru" x="56" y="80" text-anchor="middle">OF 100</text></svg>`;
+}
+const RECNAME = {gruen: 'green', gelb: 'yellow', rot: 'red'};
+const SRCNAME = {whoop: 'WHOOP live', sim: 'simulated', manual: 'entered by hand'};
+function pillHTML(hr, lo, hi) {
+  if (!isNum(hr)) return '<span class="pill miss">add</span>';
+  return `<span class="pill ${hr < lo ? 'lo' : hr > hi ? 'hi' : 'ok'}">${hr}</span>`;
+}
+function viewSummary() {
+  const rec = (lastSummaryId && recById(lastSummaryId)) || Store.sessions[0];
+  if (!rec) return `<a class="link" href="#today">‹ Today</a><div class="empty"><h3>No summary yet</h3><p>After your first session the summary shows up here.</p></div>`;
+  lastSummaryId = rec.id;
+  const d = new Date(rec.startedAt), is4 = rec.mode === '4x4', sc = rec.score || {parts: []}, hasSeries = (rec.hr5 || []).some(isNum);
+  const head = `<a class="link" href="${rec.demo ? '#today' : '#history'}">‹ ${rec.demo ? 'Today' : 'History'}</a><span class="eyebrow">${rec.demo ? 'Test run · ' : ''}${is4 ? 'Norwegian 4×4' : 'Zone 2'} · ${esc(dateShort(d))} · ${timeOf(d)}${rec.recovery ? ' · WHOOP ' + RECNAME[rec.recovery] : ''}</span><h1>${rec.demo ? 'This is your summary' : rec.endedEarly ? 'Ended early, saved' : 'Done'}</h1>${rec.demo ? '<p class="note">Test run at 10× speed with a simulated heart rate. Nothing was saved.</p>' : ''}`;
+  const parts = sc.parts.map(p => `<div class="part"><div class="pk"><span>${esc(p.k)}</span><b>${p.v == null ? 'open' : p.v}</b></div><div class="pb"><i style="width:${p.v == null ? 0 : p.v}%"></i></div></div>`).join('');
+  const scoreCard = `<div class="card"><div class="score">${ringSVG(sc.total)}<div class="parts">${parts}</div></div><p class="muted small">${is4 ? 'Quick score from finish heart rate, consistency and execution.' : 'Quick score from time in Zone 2, duration and heart rate drift.'} For the full review, copy the session and send it to Claude.</p></div>`;
+  let body = '';
+  const Zr = zonesOf(sanitizeSettings({hrMax: rec.hrMax, hrRest: rec.hrRest}));
+  if (hasSeries) {
+    body += `<div class="card"><div class="sec-head"><h3>Heart rate</h3><span class="muted small">${SRCNAME[rec.hrSrc] || ''}${rec.maxHr ? ' · max ' + rec.maxHr : ''}</span></div>${is4 ? hrChartSVG({hr5: rec.hr5, totalSec: rec.durSec, band: [rec.target.lo, rec.target.hi], z5: z5Of(rec), marks: rec.marks}) : hrChartSVG({hr5: rec.hr5, totalSec: rec.durSec, band: [rec.target.aimLo, rec.target.aimHi], zone: [rec.target.lo, rec.target.hi]})}</div>`;
+  }
+  if (is4) {
+    const {lo, hi} = rec.target;
+    const rows = rec.intervals.map(iv => `<tr data-act="sumHr" data-n="${iv.n}" tabindex="0"><td>${iv.n}</td><td>${num(iv.startSpeed)} → ${num(iv.endSpeed)}<span class="sub">${iv.bail ? 'legs gave out' : iv.skipped ? 'skipped' : !iv.done ? 'not done' : 'km/h'}</span></td><td>${pillHTML(iv.endHr, lo, hi)}${iv.auto ? '<span class="sub">auto</span>' : ''}</td><td>${isNum(iv.rpe) ? iv.rpe : '?'}</td></tr>`).join('');
+    body += `${sc.missingHr ? '<p class="note warn">Some finish heart rates are missing. Tap an interval and add the value from WHOOP.</p>' : ''}
+    <div class="card"><table class="ivt"><thead><tr><th>#</th><th>Speed</th><th>Finish</th><th>Effort</th></tr></thead><tbody>${rows}</tbody></table><p class="muted small">Target ${lo} to ${hi}. Tap a row to edit.</p></div>
+    <div class="kpis two"><div class="kpi"><span class="k">Duration</span><span class="v">${hms(rec.durSec)}</span></div><div class="kpi"><span class="k">Distance</span><span class="v">${num(rec.distKm, 2)}<small> km</small></span></div><div class="kpi"><span class="k">Climbed</span><span class="v">${int(rec.elevM)}<small> m</small></span></div><div class="kpi"><span class="k">Energy</span><span class="v">${int(rec.kcal)}<small> kcal</small></span></div></div>
+    ${rec.z5Measured ? `<div class="kpis two"><div class="kpi"><span class="k">Zone 5 measured</span><span class="v">${num(rec.z5Min)}<small> min</small></span></div><div class="kpi"><span class="k">Corrections</span><span class="v">${rec.cmds || 0}</span></div></div>` : `<div class="card"><div class="row"><div class="row-l"><span class="row-k">Zone 5 (WHOOP)</span><span class="row-h">estimated about ${num(rec.z5Min)} min</span></div><div class="stepper"><button data-act="z5" data-d="-0.5" aria-label="Zone 5 minutes minus 0.5">−</button><output id="sum-z5">${isNum(rec.z5MinWhoop) ? num(rec.z5MinWhoop) : 'open'}</output><button data-act="z5" data-d="0.5" aria-label="Zone 5 minutes plus 0.5">+</button></div></div><p class="muted small">The dose is the minutes at the top, the last 1.5 to 2 minutes of each interval.</p></div>`}`;
+  } else {
+    if (!hasSeries) body += `${rec.checks.length ? '' : '<p class="note warn">No heart rate checks saved. The score then only rates the duration.</p>'}
+    <div class="card"><div class="sec-head"><h3>Heart rate checks</h3><span class="muted small">Aim ${rec.target.aimLo} to ${rec.target.aimHi}</span></div>${checksChartSVG(rec.checks, Zr, rec.plannedMin)}</div>`;
+    body += `<div class="kpis two"><div class="kpi"><span class="k">Duration</span><span class="v">${Math.round(rec.durSec / 60)}<small>/${rec.plannedMin} min</small></span></div><div class="kpi"><span class="k">Avg heart rate</span><span class="v">${rec.avgHr ?? '?'}</span></div><div class="kpi"><span class="k">In Zone 2</span><span class="v">${rec.inZonePct == null ? 'open' : rec.inZonePct + '<small> %</small>'}</span></div><div class="kpi"><span class="k">Drift</span><span class="v">${rec.decoupling == null ? 'open' : num(rec.decoupling) + '<small> %</small>'}</span></div><div class="kpi"><span class="k">Distance</span><span class="v">${num(rec.distKm, 2)}<small> km</small></span></div><div class="kpi"><span class="k">Energy</span><span class="v">${int(rec.kcal)}<small> kcal</small></span></div></div>
+    <p class="muted small">Drift compares speed per heartbeat in the first and second half. Below 5 % means a solid base.${hasSeries ? ` The coach corrected your speed ${rec.cmds || 0} times.` : ''}</p>`;
+  }
+  const nx = rec.next;
+  const isStart = nx && (is4 ? Store.settings.speed4x4 : Store.settings.z2Speed) === nx.speed;
+  const nextCard = nx ? `<div class="card next"><span class="eyebrow">Next time</span><div class="nv">${num(nx.speed)} <small class="muted" style="font-size:18px">km/h</small></div><p class="muted">${esc(nx.text)}</p>${rec.demo ? '' : `<button class="btn ${isStart ? '' : 'primary'}" data-act="applyNext" ${isStart ? 'disabled' : ''}>${isStart ? 'Already your start speed' : 'Use as start speed'}</button>`}</div>` : '';
+  return `${runbarHTML()}${head}${scoreCard}${body}${nextCard}
+  <section class="section"><label class="eyebrow" for="sum-note">Note</label><textarea id="sum-note" maxlength="2000" placeholder="Legs, sleep, shoes, anything notable">${esc(rec.note)}</textarea></section>
+  <div class="btn-row"><button class="btn primary" data-act="copySession">Copy for Claude</button><a class="btn" href="#today">Done</a></div>
+  ${rec.demo ? '' : '<button class="link danger" data-act="delAsk">Delete session</button>'}`;
+}
+function sessionText(rec) {
+  const d = new Date(rec.startedAt), L = ['Claude, please review my session:'];
+  const ds = d.toLocaleDateString(LOC, {weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric'}) + ' ' + timeOf(d);
+  L.push(`Heart rate source: ${SRCNAME[rec.hrSrc] || 'entered by hand'}`);
+  if (rec.mode === '4x4') {
+    L.push(`Norwegian 4x4 · ${ds}${rec.recovery ? ' · WHOOP ' + RECNAME[rec.recovery] : ''}${rec.legsHeavy ? ' · heavy legs' : ''}`);
+    L.push(`Duration ${hms(rec.durSec)} · incline ${fmtIncl(rec.incline)} % · target finish ${rec.target.lo} to ${rec.target.hi}`);
+    rec.intervals.forEach(iv => L.push(`I${iv.n}: ${num(iv.startSpeed)} > ${num(iv.endSpeed)} km/h · finish ${isNum(iv.endHr) ? iv.endHr : 'open'}${iv.auto ? ' (auto)' : ''}${isNum(iv.rpe) ? ' · effort ' + iv.rpe + '/10' : ''}${iv.bail ? ' · legs gave out' : iv.skipped ? ' · skipped' : !iv.done ? ' · not done' : ''}`));
+    L.push(`Zone 5: ${rec.z5Measured ? num(rec.z5Min) + ' min measured' : isNum(rec.z5MinWhoop) ? num(rec.z5MinWhoop) + ' min per WHOOP' : 'about ' + num(rec.z5Min) + ' min (estimate)'}${rec.maxHr ? ' · max ' + rec.maxHr : ''}`);
+    L.push(`Cool-down ${rec.coolDone ? 'done' : 'not finished'}${rec.longestPauseSec > 120 ? ' · longest break ' + hms(rec.longestPauseSec) : ''}${rec.cmds ? ' · ' + rec.cmds + ' speed corrections' : ''}`);
+  } else {
+    L.push(`Zone 2 · ${ds} · ${Math.round(rec.durSec / 60)} of ${rec.plannedMin} min · incline ${fmtIncl(rec.incline)} %${rec.vestKg ? ' · vest ' + num(rec.vestKg) + ' kg' : ''}`);
+    if ((rec.hr5 || []).some(isNum)) {
+      const per5 = [];
+      for (let i = 0; i < rec.hr5.length; i += 60) { const sl = rec.hr5.slice(i, i + 60).filter(isNum); if (sl.length) per5.push(Math.round(sl.reduce((a, b) => a + b, 0) / sl.length)); }
+      L.push('Heart rate per 5 min: ' + per5.join(', '));
+      L.push(`Speed changes: ${(rec.spd || []).map(([t, v]) => Math.round(t / 60) + ' min ' + num(v)).join(', ')}`);
+    } else L.push('Heart rate checks: ' + (rec.checks.length ? rec.checks.map(c => `min ${c.min}: ${c.hr} at ${num(c.speed)}${c.talk === 'kurz' ? ' (short sentences only)' : ''}`).join(', ') : 'none'));
+    L.push(`Avg heart rate ${rec.avgHr ?? 'open'} · in Zone 2 ${rec.inZonePct == null ? 'open' : rec.inZonePct + ' %'} · drift ${rec.decoupling == null ? 'open' : num(rec.decoupling) + ' %'}`);
+  }
+  L.push(`Distance ${num(rec.distKm, 2)} km · ${int(rec.elevM)} m climbed · about ${int(rec.kcal)} kcal`);
+  if (rec.score && rec.score.total != null) L.push(`Quick score ${rec.score.total}/100 (${rec.score.parts.filter(p => p.v != null).map(p => p.k + ' ' + p.v).join(', ')})`);
+  if (rec.next) L.push(`Suggested next time: ${num(rec.next.speed)} km/h`);
+  if (rec.note) L.push('Note: ' + rec.note);
+  return L.join('\n');
+}
+function copyText(text, okMsg) {
+  const fallback = () => {
+    sheetState = {kind: 'copy'};
+    showSheet(`<div class="sh-head"><h2 id="sheet-title">Copy this</h2><button class="icon" data-act="sheetClose" aria-label="Close">${ICON.close}</button></div><textarea id="copy-ta" readonly rows="10">${esc(text)}</textarea><p class="sh-text">The text is selected. Copy it from your phone’s menu.</p>`, true);
+    const ta = $('#copy-ta'); if (ta) { ta.focus(); ta.select(); }
+  };
+  try {
+    if (!navigator.clipboard || !navigator.clipboard.writeText) { fallback(); return; }
+    let settled = false;
+    const guard = setTimeout(() => { if (!settled) { settled = true; fallback(); } }, 2000);
+    navigator.clipboard.writeText(text).then(() => { if (settled) return; settled = true; clearTimeout(guard); toast(okMsg || 'Copied. Now paste it into your chat with Claude.'); }, () => { if (settled) return; settled = true; clearTimeout(guard); fallback(); });
+  } catch (e) { fallback(); }
+}
+
+/* ---- history ---- */
+function scoreClass(v) { return v == null ? 's-na' : v >= 85 ? 's-hi' : v >= 70 ? 's-mid' : 's-lo'; }
+function histItem(s) {
+  const d = new Date(s.startedAt);
+  const line = s.mode === '4x4' ? `Finish ${s.intervals.map(i => isNum(i.endHr) ? i.endHr : '?').join(' · ')} · from ${num(s.intervals[0] && isNum(s.intervals[0].startSpeed) ? s.intervals[0].startSpeed : s.startSpeed)}` : `${Math.round(s.durSec / 60)} min · avg ${s.avgHr ?? '?'} bpm · ${num(s.distKm, 1)} km`;
+  return `<button class="hist" data-act="openSession" data-id="${esc(s.id)}"><span class="hb ${s.mode === '4x4' ? 'r' : 'g'}">${s.mode === '4x4' ? '4×4' : 'Z2'}</span><span class="hm"><span class="hd">${esc(dateShort(d))} · ${timeOf(d)}</span><span class="hl">${esc(line)}</span></span><span class="hs ${scoreClass(s.score && s.score.total)}">${s.score && s.score.total != null ? s.score.total : '?'}</span></button>`;
+}
+function weeksChartSVG() {
+  const st = Store.settings, W = 340, H = 160, pl = 36, pr = 10, pt = 16, pb = 26, now = new Date(), ws0 = weekStart(now), weeks = [];
+  for (let k = 5; k >= 0; k--) {
+    const a = addDays(ws0, -7 * k), b = addDays(a, 7);
+    const mins = Store.sessions.filter(s => s.mode === 'z2' && s.startedAt >= a.getTime() && s.startedAt < b.getTime()).reduce((t, s) => t + s.durSec / 60, 0);
+    weeks.push({a, mins: Math.round(mins), kw: isoWeek(a), cur: k === 0});
+  }
+  const maxV = Math.max(st.z2Week || 60, ...weeks.map(w => w.mins)) * 1.18;
+  const y = v => pt + (1 - v / maxV) * (H - pt - pb), cw = (W - pl - pr) / 6, bw = cw * 0.56;
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Zone 2 minutes per week: ${weeks.map(w => 'week ' + w.kw + ' ' + w.mins).join(', ')}">
+    <line class="gl" x1="${pl}" x2="${W - pr}" y1="${y(0)}" y2="${y(0)}"/><text class="ax" x="${pl - 6}" y="${y(0) + 4}" text-anchor="end">0</text>
+    ${st.z2Week ? `<line class="tl" x1="${pl}" x2="${W - pr}" y1="${y(st.z2Week).toFixed(1)}" y2="${y(st.z2Week).toFixed(1)}"/><text class="ax" x="${pl - 6}" y="${(y(st.z2Week) + 4).toFixed(1)}" text-anchor="end">${st.z2Week}</text>` : ''}
+    ${weeks.map((w, i) => { const x = pl + i * cw + (cw - bw) / 2, yy = y(w.mins), h = y(0) - yy; return `${w.mins ? `<rect class="${w.cur ? 'bar-now' : 'bar-z2'}" x="${x.toFixed(1)}" y="${yy.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0, h).toFixed(1)}" rx="3"/><text class="lb" x="${(x + bw / 2).toFixed(1)}" y="${(yy - 5).toFixed(1)}" text-anchor="middle">${w.mins}</text>` : ''}<text class="ax" x="${(x + bw / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle">W${w.kw}</text>`; }).join('')}
+    ${weeks.every(w => !w.mins) ? `<text class="lb" x="${(pl + W - pr) / 2}" y="${((y(st.z2Week || 0) + y(0)) / 2 + 4).toFixed(1)}" text-anchor="middle">No Zone 2 in the last 6 weeks yet</text>` : ''}
+  </svg>`;
+}
+function speedTrendSVG(list) {
+  const W = 340, H = 150, pl = 36, pr = 16, pt = 22, pb = 26;
+  const vals = list.map(s => isNum(s.intervals[0] && s.intervals[0].startSpeed) ? s.intervals[0].startSpeed : s.startSpeed).map(Number);
+  const lo = Math.floor((Math.min(...vals) - 0.3) * 10) / 10, hi = Math.ceil((Math.max(...vals) + 0.3) * 10) / 10;
+  const x = i => pl + (list.length === 1 ? 0.5 : i / (list.length - 1)) * (W - pl - pr), y = v => pt + (1 - (v - lo) / (hi - lo)) * (H - pt - pb);
+  const f = new Date(list[0].startedAt), l = new Date(list[list.length - 1].startedAt);
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Start speed of your recent 4×4 sessions: ${vals.map(v => num(v)).join(', ')} km/h">
+    ${[lo, hi].map(v => `<line class="gl" x1="${pl}" x2="${W - pr}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text class="ax" x="${pl - 6}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${num(v)}</text>`).join('')}
+    <polyline class="ln" points="${vals.map((v, i) => x(i).toFixed(1) + ',' + y(v).toFixed(1)).join(' ')}"/>
+    ${vals.map((v, i) => `<circle class="pt${i === vals.length - 1 ? ' last' : ''}" cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="4.5"/>`).join('')}
+    <text class="lb" x="${clamp(x(vals.length - 1), pl + 14, W - pr - 14).toFixed(1)}" y="${(y(vals[vals.length - 1]) - 10).toFixed(1)}" text-anchor="middle">${num(vals[vals.length - 1])}</text>
+    <text class="ax" x="${pl}" y="${H - 8}" text-anchor="start">${esc(f.toLocaleDateString(LOC, {day: 'numeric', month: 'short'}))}</text>
+    <text class="ax" x="${W - pr}" y="${H - 8}" text-anchor="end">${esc(l.toLocaleDateString(LOC, {day: 'numeric', month: 'short'}))}</text>
+  </svg>`;
+}
+function viewHistory() {
+  const now = new Date(), ws = weekStats(now), list = Store.sessions;
+  const fours = list.filter(s => s.mode === '4x4' && s.durSec >= 600 && isNum(s.intervals[0] && isNum(s.intervals[0].startSpeed) ? s.intervals[0].startSpeed : s.startSpeed)).slice(0, 10).reverse();
+  return `${runbarHTML()}<span class="eyebrow">History</span><h1>Your sessions</h1>
+  <section class="section"><div class="sec-head"><h2>This week</h2><span class="muted small">from ${esc(ws.a.toLocaleDateString(LOC, {day: 'numeric', month: 'short'}))}</span></div>${weekStripHTML(now)}${kpisHTML(ws)}</section>
+  <section class="section"><h2>Zone 2 per week</h2><div class="card">${weeksChartSVG()}<p class="muted small">Minutes per calendar week, dashed line is your weekly goal.</p></div></section>
+  ${fours.length >= 2 ? `<section class="section"><h2>4×4 start speed</h2><div class="card">${speedTrendSVG(fours)}<p class="muted small">If this line climbs while your finish heart rate stays the same, your VO2max is growing.</p></div></section>` : ''}
+  <section class="section"><div class="sec-head"><h2>All sessions</h2><span class="sync" data-s="${Store.cloud}">${syncText()}</span></div>
+  ${list.length ? `<div class="list">${list.map(histItem).join('')}</div>` : `<div class="empty"><h3>No sessions yet</h3><p>Start your first 4×4 or Zone 2 walk. Every session lands here with a score and a suggestion for next time.</p><button class="btn primary" data-act="goHome">Go to Today</button></div>`}</section>`;
+}
+
+/* ---- learn ---- */
+function viewLearn() {
+  const st = Store.settings, Z = zonesOf(st), T = target4x4(Z, 'gruen'), v = num(st.speed4x4), w = num(st.warmSpeed), r = num(st.recSpeed), inc = fmtIncl(st.incline);
+  const zUse = ['Recovery, cool-down', 'Zone 2 training', 'Too hard for Zone 2, too easy for a 4×4', 'Early part of each interval', 'Last 2 minutes of each interval'];
+  const zPct = ['50 to 60', '60 to 70', '70 to 80', '80 to 90', '90 to 100'];
+  return `${runbarHTML()}<span class="eyebrow">Learn</span><h1>How your protocol works</h1>
+  <section class="section k-sec"><h2>Live coaching with WHOOP</h2><ul>
+    <li>With WHOOP connected, the coach reads your heart rate every second and smooths it over <strong>30 seconds</strong>, so a single spike changes nothing.</li>
+    <li>Heart rate needs <strong>1 to 2 minutes</strong> to settle after a speed change. That’s why the coach waits about <strong>90 seconds</strong> after each instruction in Zone 2. Correcting faster makes you swing back and forth.</li>
+    <li>Above <strong>${Z.z2hi}</strong> it reacts right away. Otherwise it only speaks when you need to act.</li>
+    <li>It assumes you follow and keeps track of your speed itself. You don’t need to tap anything.</li>
+    <li>In the 4×4 it keeps your checkpoints at minute 2, minute 3 and the last minute, decided from your live heart rate. Finish heart rate and Zone 5 minutes are logged for you.</li>
+  </ul></section>
+  <section class="section k-sec"><h2>Set up WHOOP</h2><ol>
+    <li>In the WHOOP app, turn on <strong>Broadcast Heart Rate</strong> in your device settings.</li>
+    <li>Open the coach app in Chrome on Android, tap <strong>Connect WHOOP</strong> and pick your strap.</li>
+    <li>If it doesn’t show up, close the WHOOP app fully and any other app that reads heart rate. Some treadmills grab the signal too.</li>
+  </ol></section>
+  <section class="section k-sec"><h2>With Anki and Brain.fm</h2><ul>
+    <li>Keep the coach <strong>visible</strong>, as a floating window or in split screen next to AnkiDroid. Android freezes hidden pages and the coach would go silent.</li>
+    <li>Brain.fm keeps playing in the background. Your phone should turn it down briefly while the coach speaks.</li>
+  </ul></section>
+  <section class="section k-sec"><h2>Your zones</h2><p>Calculated like WHOOP, from your heart rate reserve with max ${Z.max} and rest ${Z.rest}.</p>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Zone</th><th>Heart rate</th><th>Use</th></tr></thead><tbody>${Z.list.map((z, i) => `<tr><td class="n"><span class="zdot" style="--zc:var(--z${z.n})"></span>${z.n}</td><td class="n">${z.lo} to ${z.hi}<span class="sub">${zPct[i]} % reserve</span></td><td>${zUse[i]}</td></tr>`).join('')}</tbody></table></div></section>
+  <section class="section k-sec"><h2>Norwegian 4×4 on the treadmill</h2>
+    <div class="steps">
+      <div class="stp-r" data-t="warm"><span class="sm">0 to 7</span><div class="sd"><b>Warm-up</b> at ${inc} % · ${w} km/h<span>Heart rate settles around 140</span></div></div>
+      <div class="stp-r" data-t="pick"><span class="sm">7 to 10</span><div class="sd"><b>2 pickups</b> of 30 s at ${v} km/h<span>1 min easy in between</span></div></div>
+      <div class="stp-r" data-t="work"><span class="sm">10 to 14</span><div class="sd"><b>Interval 1</b> · ${v} km/h<span>Finish heart rate ${T.lo} to ${T.hi}</span></div></div>
+      <div class="stp-r" data-t="rec"><span class="sm">14 to 17</span><div class="sd"><b>Recovery</b> · ${r} km/h, keep walking<span>Heart rate drops to about ${Z.recTo}</span></div></div>
+      <div class="stp-r" data-t="work"><span class="sm">17 to 35</span><div class="sd"><b>Intervals 2 to 4</b> with the same recovery<span>Start at the speed you finished on</span></div></div>
+      <div class="stp-r" data-t="cool"><span class="sm">35 to 40</span><div class="sd"><b>Cool-down</b> · 3.5 to 4 km/h<span>Incline down until heart rate is below ${Z.coolTo}</span></div></div>
+    </div></section>
+  <section class="section k-sec"><h2>Steering an interval by hand</h2><ol>
+    <li>Press the speed up about <strong>10 s before the start</strong>. The belt needs a moment.</li>
+    <li>Ignore your heart rate until <strong>minute 2</strong>. Heart and WHOOP lag behind.</li>
+    <li>Minute 2 above <strong>${T.m2Max}</strong>: down 0.3.</li>
+    <li>Minute 3 below <strong>${T.m3Min}</strong>: up 0.3.</li>
+    <li>At <strong>${T.early}</strong> before 3:30: down 0.3 and keep walking.</li>
+    <li>Your heart rate should still be climbing in the last minute. If it stays flat, you were too slow.</li>
+    <li>Start the next interval at the speed you finished on. Below ${T.lo}: 0.3 faster. Above ${T.hi}: 0.3 slower.</li>
+  </ol></section>
+  <section class="section k-sec"><h2>Form</h2><ul>
+    <li><strong>Hands off the rails.</strong> Even a light grip takes load off your legs and your heart rate stalls.</li>
+    <li>Short quick steps, whole foot, push from the glutes, lean from the ankles, stay mid-belt.</li>
+    <li>Walk, never jog. Swing your arms, breathe deep and steady through your mouth.</li>
+    <li>Effort at the end: intervals 1 to 3 at 8 out of 10, a few words still possible. Interval 4 at 9 out of 10.</li>
+  </ul></section>
+  <section class="section k-sec"><h2>WHOOP recovery and spacing</h2><ul>
+    <li><strong>Green:</strong> full session, finish heart rate ${Z.endLo} to ${Z.endHi}.</li>
+    <li><strong>Yellow:</strong> capped at ${Z.yHi}, no push in interval 4.</li>
+    <li><strong>Red:</strong> Zone 2 instead of a 4×4.</li>
+    <li>At least <strong>48 h</strong> between two 4×4 sessions. Don’t take your legs to failure the day before.</li>
+  </ul></section>
+  <section class="section k-sec"><h2>Bail-out and safety</h2><ul>
+    <li>Safety clip on your waistband, always.</li>
+    <li>If your legs give out: quick key to 3.5 to 4 and keep walking. Next interval 0.3 to 0.5 slower.</li>
+    <li><strong>Stop right away</strong> if you feel chest pain or pressure, dizziness, palpitations, or shortness of breath that doesn’t match the effort.</li>
+    <li>After the 4×4, get below ${Z.coolTo} first, then drink, then 30 min of sauna. Going straight from hard intervals into the heat is when people get light-headed.</li>
+  </ul></section>
+  <section class="section k-sec"><h2>Zone 2 done right</h2><ul>
+    <li>Aim for <strong>${Z.aimLo} to ${Z.aimHi}</strong>, cap at ${Z.z2hi}. Zone 3 starts at ${Z.z2hi + 1}.</li>
+    <li>Talk test: full sentences should work.</li>
+    <li>If your heart rate creeps up at the same speed over time, that’s drift. Below 5 % is strong.</li>
+    <li>Weight vest in Zone 2 only, never in a 4×4. Build the load slowly.</li>
+    <li>${inc} % every day loads your Achilles and plantar fascia. With pulling or morning stiffness, drop to 10 to 12 % or take a bike day.</li>
+  </ul></section>
+  <section class="section k-sec"><h2>Why it works</h2>
+    <p>The 4×4 mainly trains your <strong>stroke volume</strong>. In the Norwegian study by Helgerud and colleagues (2007), VO2max rose about 7 % after 8 weeks of 3 sessions a week. The real dose is the time close to VO2max, the last 1.5 to 2 minutes of each interval.</p>
+    <p>Zone 2 builds mitochondria, capillaries and fat burning at a low recovery cost. Together with the 4×4 you cover both ends of endurance.</p></section>`;
+}
+
+/* ---- setup ---- */
+const SET_GROUPS = [
+  ['Heart rate', [['hrMax', 'Max heart rate', 'from WHOOP', 1, 0], ['hrRest', 'Resting heart rate', 'morning value', 1, 0]]],
+  ['Norwegian 4×4', [['speed4x4', 'Interval start speed', 'km/h', 0.1, 1], ['warmSpeed', 'Warm-up', 'km/h', 0.1, 1], ['recSpeed', 'Recovery', 'km/h', 0.1, 1], ['incline', 'Incline', '% for both sessions', 0.5, 1]]],
+  ['Zone 2', [['z2Speed', 'Speed', 'km/h', 0.1, 1], ['z2Minutes', 'Duration', 'min', 5, 0], ['vestKg', 'Weight vest', 'kg', 2.5, 1], ['checkEvery', 'Manual check every', 'min, only without live heart rate', 5, 0], ['z2Week', 'Weekly goal', 'min of Zone 2', 10, 0]]],
+  ['Body', [['weight', 'Body weight', 'kg, only for the kcal estimate', 0.5, 1]]]
+];
+function setVal(k, dec) { const v = Store.settings[k]; return k === 'incline' ? fmtIncl(v) : k === 'vestKg' && !v ? 'none' : num(v, dec); }
+function viewSetup() {
+  const st = Store.settings, Z = zonesOf(st);
+  const groups = SET_GROUPS.map(([title, rows]) => `<section class="section"><h2>${title}</h2><div class="card"><div class="rows">${rows.map(([k, label, hint, step, dec]) => `<div class="row"><div class="row-l"><span class="row-k">${label}</span><span class="row-h">${hint}</span></div><div class="stepper"><button data-act="set" data-k="${k}" data-d="${-step}" data-dec="${dec}" aria-label="Lower ${label}">−</button><output id="set-${k}">${setVal(k, dec)}</output><button data-act="set" data-k="${k}" data-d="${step}" data-dec="${dec}" aria-label="Raise ${label}">+</button></div></div>`).join('')}</div>${title === 'Heart rate' ? `<div id="set-zones">${zoneBarHTML(Z)}</div>` : ''}</div></section>`).join('');
+  const vb = (k, l, h) => `<button class="chip txt" data-act="voicePick" data-v="${k}" aria-pressed="${st.voiceName === k}">${l}<span class="row-h" style="font-weight:400">${h}</span></button>`;
+  return `${runbarHTML()}<span class="eyebrow">Setup</span><h1>Your numbers</h1>
+  <section class="section"><h2>WHOOP live heart rate</h2><div data-hrpanel="full">${hrPanelHTML(false)}</div></section>
+  ${groups}
+  <section class="section"><h2>Weekly plan</h2><p class="muted small">Tap a day to switch between strength, 4×4, Zone 2 and rest.</p><div class="plan">${st.plan.map((p, i) => `<button class="pd" data-act="plan" data-i="${i}" data-t="${p}" aria-label="${DAYS[i]}: ${PLAN_LONG[p]}"><span class="dn">${DAYS[i]}</span><span class="dt">${PLAN_SHORT[p]}</span></button>`).join('')}</div></section>
+  <section class="section"><h2>Coach voice</h2><div class="chips grid3" role="group" aria-label="Coach voice">${vb('heart', 'Heart', 'US, female')}${vb('michael', 'Michael', 'US, male')}${vb('phone', 'Phone', 'your phone’s voice')}</div><span class="vstat" data-vstat data-s="${Speaker.state}">${voiceStatusText()}</span></section>
+  <section class="section"><h2>Sound</h2>${soundRowHTML()}</section>
+  <section class="section"><h2>Storage</h2><div class="card"><span class="sync" data-s="${Store.cloud}">${syncText()}</span><p class="muted small">${Store.cloud === 'on' ? 'Sessions and settings live in your Claude account. Only you can read them, on any device. Claude can read them for a review.' : 'Sessions live in this browser. Copy all data gives you a backup anytime.'}</p><div class="btn-row"><button class="btn" data-act="exportAll">Copy all data</button><button class="btn" data-act="importOpen">Import data</button></div></div></section>`;
+}
+function importSheet() {
+  sheetState = {kind: 'import', take: true};
+  showSheet(`<div class="sh-head"><h2 id="sheet-title">Import data</h2><button class="icon" data-act="sheetClose" aria-label="Close">${ICON.close}</button></div>
+  <p class="sh-text">Paste what you copied with Copy all data on another device. Sessions you already have stay as they are unless the pasted copy is newer.</p>
+  <textarea id="imp-ta" rows="7" placeholder="Paste here"></textarea>
+  <button class="toggle" role="switch" aria-checked="true" data-act="impTake"><span class="tl"><span class="row-k">Also take over the settings</span><span class="th">Heart rate, speeds, plan and voice</span></span><span class="sw"></span></button>
+  <div class="sh-actions"><button class="btn" data-act="sheetClose">Cancel</button><button class="btn primary" data-act="importDo">Import</button></div>`, true);
+}
+
+/* ================= render + routing ================= */
+function setTabs(r) {
+  document.querySelectorAll('.tab').forEach(a => { const on = a.dataset.r === r || (a.dataset.r === 'today' && r.startsWith('prep')) || (a.dataset.r === 'history' && r === 'summary'); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+}
+function render() {
+  const r = route();
+  if (r === 'live' && (!S || S.closedPause)) { go('today'); return; }
+  document.body.classList.toggle('is-live', r === 'live');
+  if (r !== 'live') document.body.classList.remove('has-hr');
+  setTabs(r);
+  const v = $('#view');
+  if (r === 'live') { renderLive(); return; }
+  v.innerHTML = r === 'prep-4x4' ? viewPrep4x4() : r === 'prep-z2' ? viewPrepZ2() : r === 'summary' ? viewSummary() : r === 'history' ? viewHistory() : r === 'learn' ? viewLearn() : r === 'setup' ? viewSetup() : viewHome();
+}
+let pendingRender = false;
+function onStoreChange() {
+  const ae = document.activeElement;
+  if (ae && (ae.tagName === 'TEXTAREA' || ae.tagName === 'INPUT') && $('#view').contains(ae)) { pendingRender = true; return; }
+  if (sheetState && sheetState.kind === 'import') return;
+  const r = route();
+  if (r === 'live' || r.startsWith('prep')) return;
+  const y = window.scrollY;
+  render();
+  window.scrollTo(0, y);
+}
+window.addEventListener('hashchange', () => { if (route() !== 'live') closeSheet(); window.scrollTo(0, 0); render(); });
+
+/* ================= actions ================= */
+const ACT = {
+  goHome: () => go('today'),
+  prep4x4: () => { UI4 = null; go('prep-4x4'); },
+  prepZ2: () => { UIZ = null; go('prep-z2'); },
+  rec: t => { UI4.rec = t.dataset.v; rerenderKeep(); },
+  legs: () => { UI4.legs = !UI4.legs; UI4.speed = clamp(r1(UI4.speed + (UI4.legs ? -0.5 : 0.5)), 2, 16); rerenderKeep(); },
+  p4spd: t => { UI4.speed = clamp(r1(UI4.speed + Number(t.dataset.d)), 2, 16); rerenderKeep(); },
+  ck: t => { const st = route() === 'prep-4x4' ? UI4 : UIZ; st.ck[t.dataset.k] = !st.ck[t.dataset.k]; t.setAttribute('aria-checked', String(!!st.ck[t.dataset.k])); const list = route() === 'prep-4x4' ? CK4 : CKZ; const c = $('#ck-count'); if (c) c.textContent = list.filter(([k]) => st.ck[k]).length + ' of ' + list.length; },
+  sndTog: t => { const k = t.dataset.k; Store.setSetting(k, !Store.settings[k]); t.setAttribute('aria-checked', String(Store.settings[k])); },
+  sndTest: () => { Snd.unlock(); setTimeout(() => { Snd.play('go', true); buzz([100, 60, 100]); Speaker.say(['test'], {force: true}); if (!Snd.ctx) toast('This device doesn’t play sound here.'); }, 60); },
+  voicePick: t => { const v = t.dataset.v; Store.setSetting('voiceName', v); document.querySelectorAll('[data-act="voicePick"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === v))); Speaker.state = v === 'phone' ? 'phone' : (Speaker.loaded === v && Speaker.buf ? 'ready' : 'idle'); uiVoice(); Speaker.load(v).then(() => { Snd.unlock(); Speaker.say(['test'], {force: true}); }); },
+  btConnect: () => { BLE.connect(); },
+  btDisconnect: () => { BLE.release(false); toast('WHOOP disconnected.'); },
+  start4x4: () => {
+    if (!UI4 || !UI4.rec) return;
+    if (S) { toast('A session is already running.'); go(S.closedPause ? 'today' : 'live'); return; }
+    if (UI4.rec === 'rot') { initUIZ(); UIZ.minutes = 60; go('prep-z2'); return; }
+    Snd.unlock();
+    startSession('4x4', {recovery: UI4.rec, legsHeavy: UI4.legs, startSpeed: UI4.speed, incline: Store.settings.incline});
+  },
+  zMin: t => { UIZ.minutes = Number(t.dataset.v); rerenderKeep(); },
+  zSpd: t => { UIZ.speed = clamp(r1(UIZ.speed + Number(t.dataset.d)), 1, 12); rerenderKeep(); },
+  zVest: t => { UIZ.vest = Number(t.dataset.v); rerenderKeep(); },
+  zEvery: t => { UIZ.every = Number(t.dataset.v); rerenderKeep(); },
+  zQuiet: () => { UIZ.quiet = !UIZ.quiet; Store.setSetting('z2Quiet', UIZ.quiet); rerenderKeep(); },
+  startZ2: () => { if (S) { toast('A session is already running.'); go(S.closedPause ? 'today' : 'live'); return; } Snd.unlock(); startSession('z2', {minutes: UIZ.minutes, speed: UIZ.speed, vestKg: UIZ.vest, every: UIZ.every, quiet: UIZ.quiet, incline: Store.settings.incline}); },
+  demo4x4: () => { if (S) { toast('End the running session first.'); return; } Snd.unlock(); const rec = UI4 && (UI4.rec === 'gruen' || UI4.rec === 'gelb') ? UI4.rec : 'gruen'; startSession('4x4', {recovery: rec, legsHeavy: !!(UI4 && UI4.legs), startSpeed: UI4 ? UI4.speed : Store.settings.speed4x4, incline: Store.settings.incline}, 10); },
+  demoZ2: () => { if (S) { toast('End the running session first.'); return; } Snd.unlock(); if (!UIZ) initUIZ(); startSession('z2', {minutes: UIZ.minutes, speed: UIZ.speed, vestKg: UIZ.vest, every: UIZ.every, quiet: UIZ.quiet, incline: Store.settings.incline}, 10); },
+  spd: t => setSpeed(Number(t.dataset.d)),
+  pause: () => pauseToggle(),
+  skip: () => { if (armedTwice('skip', 'Tap again to skip this phase')) skipPhase(); },
+  back: () => { if (armedTwice('back', 'Tap again to restart this phase')) backPhase(); },
+  bail: () => { if (armedTwice('bail', 'Tap again to end this interval and recover')) bailDo(); },
+  rewarm: () => doRewarm(),
+  restartPhase: () => restartPhase(),
+  hrNow: () => {
+    if (!S) return;
+    if (S.mode === 'z2') { closeSheet(); openCheckSheet(false); return; }
+    const ph = curPhase();
+    let n = ph.type === 'work' ? ph.n : 0;
+    if (!n) for (let i = S.idx - 1; i >= 0; i--) if (S.phases[i].type === 'work') { n = S.phases[i].n; break; }
+    if (!n) { toast('Finish heart rates start with interval 1.'); return; }
+    closeSheet(); openHrSheet(n, 'live');
+  },
+  cycleSound: () => { if (!S) return; S.soundMode = S.soundMode === 'all' ? 'tones' : S.soundMode === 'tones' ? 'off' : 'all'; if (S.soundMode !== 'all') Speaker.stop(); toast(S.soundMode === 'all' ? 'Voice and tones on' : S.soundMode === 'tones' ? 'Tones only' : 'Muted, vibration stays on'); persistActive(); renderLive(); },
+  unlockAudio: () => { Snd.unlock(); setTimeout(() => { Snd.play('tick'); if (S) liveDyn(clock()); }, 80); },
+  endAsk: () => {
+    if (!S) return;
+    if (S.demo) { confirmSheet({title: 'End the test run?', text: 'You’ll see what the summary looks like. Nothing is saved.', buttons: [{label: 'End test run', act: 'endSave', cls: 'primary'}, {label: 'Keep watching', act: 'sheetClose'}]}); return; }
+    const short = sessionEl(clock()) < 120000;
+    confirmSheet({title: 'End the session?', text: short ? 'Less than 2 minutes. Hardly worth saving.' : 'Everything up to now is saved and scored.', buttons: short ? [{label: 'Discard', act: 'endDiscard', cls: 'primary'}, {label: 'Save anyway', act: 'endSave'}, {label: 'Keep training', act: 'sheetClose'}] : [{label: 'End and save', act: 'endSave', cls: 'primary'}, {label: 'Keep training', act: 'sheetClose'}, {label: 'Discard', act: 'endDiscard'}]});
+  },
+  endSave: () => { if (!S) return; closeSheet(); const now = clock(); tick(now); if (S) finishSession(now, true); },
+  endDiscard: () => { closeSheet(); if (!S) return; const demo = S.demo; S = null; LS.del(K.active); Wake.release(); Speaker.stop(); if (demo) HR.reset(); toast('Session discarded.'); go('today'); render(); },
+  resumeOpen: () => { if (!S) return; S.closedPause = false; persistActive(); go('live'); },
+  sheetClose: () => closeSheet(),
+  sheetBack: () => closeSheet(),
+  hrStep: t => { if (!sheetState) return; sheetState.val = clamp(sheetState.val + Number(t.dataset.d), 60, 230); syncHrSheet(); },
+  hrSet: t => { if (!sheetState) return; sheetState.val = Number(t.dataset.v); syncHrSheet(); },
+  rpe: t => { if (!sheetState) return; const v = Number(t.dataset.v); sheetState.rpe = sheetState.rpe === v ? null : v; document.querySelectorAll('[data-act="rpe"]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.v) === sheetState.rpe))); },
+  talk: t => { if (!sheetState) return; sheetState.talk = t.dataset.v; document.querySelectorAll('[data-act="talk"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === sheetState.talk))); },
+  hrSave: () => hrSave(),
+  chkSave: () => chkSave(),
+  sumHr: t => openHrSheet(Number(t.dataset.n), 'sum', lastSummaryId),
+  z5: t => { const rec = recById(lastSummaryId); if (!rec) return; const base = isNum(rec.z5MinWhoop) ? rec.z5MinWhoop : rec.z5Min || 0; rec.z5MinWhoop = clamp(Math.round((base + Number(t.dataset.d)) * 2) / 2, 0, 30); $('#sum-z5').textContent = num(rec.z5MinWhoop); saveRec(rec, true); },
+  applyNext: () => { const rec = recById(lastSummaryId); if (!rec || !rec.next) return; Store.setSetting(rec.mode === '4x4' ? 'speed4x4' : 'z2Speed', rec.next.speed); toast(`Start speed is now ${num(rec.next.speed)} km/h`); render(); },
+  copySession: () => { const rec = recById(lastSummaryId); if (rec) copyText(sessionText(rec)); },
+  openSession: t => { lastSummaryId = t.dataset.id; go('summary'); },
+  delAsk: () => confirmSheet({title: 'Delete this session?', text: 'It disappears from your history and your account. This can’t be undone.', buttons: [{label: 'Delete', act: 'delDo', cls: 'red'}, {label: 'Keep it', act: 'sheetClose'}]}),
+  delDo: () => { const id = lastSummaryId; closeSheet(); if (id) { lastSummaryId = null; go('history'); Store.deleteSession(id); toast('Session deleted.'); } },
+  set: t => {
+    const k = t.dataset.k, dec = Number(t.dataset.dec);
+    Store.setSetting(k, Number(Store.settings[k]) + Number(t.dataset.d));
+    const o = $('#set-' + k); if (o) o.textContent = setVal(k, dec);
+    if (k === 'hrMax' || k === 'hrRest') { const o2 = $('#set-hrRest'); if (o2) o2.textContent = setVal('hrRest', 0); const z = $('#set-zones'); if (z) z.innerHTML = zoneBarHTML(zonesOf(Store.settings)); }
+  },
+  plan: t => { const i = Number(t.dataset.i), p = Store.settings.plan.slice(); p[i] = PLAN_TYPES[(PLAN_TYPES.indexOf(p[i]) + 1) % PLAN_TYPES.length]; Store.setSetting('plan', p); t.dataset.t = p[i]; t.querySelector('.dt').textContent = PLAN_SHORT[p[i]]; t.setAttribute('aria-label', DAYS[i] + ': ' + PLAN_LONG[p[i]]); },
+  exportAll: () => copyText(JSON.stringify({exported: new Date().toISOString(), app: 'treadmill-coach', settings: Store.settings, sessions: Store.sessions.map(cloudBody)}), 'All data copied.'),
+  importOpen: () => importSheet(),
+  impTake: t => { sheetState.take = !sheetState.take; t.setAttribute('aria-checked', String(sheetState.take)); },
+  importDo: () => {
+    const ta = $('#imp-ta'), raw = ta ? ta.value.trim() : '';
+    let obj = null;
+    try { obj = JSON.parse(raw); } catch (e) { obj = null; }
+    const res = obj ? Store.importData(obj, sheetState && sheetState.take) : null;
+    if (!res) { toast('That doesn’t look like coach data. Paste exactly what Copy all data gave you.'); return; }
+    closeSheet();
+    toast(`Imported ${res.added} new and ${res.updated} updated sessions${res.settings ? ', settings too' : ''}.`);
+    render();
+  }
+};
+function syncHrSheet() {
+  const o = $('#sh-val'); if (o) o.textContent = sheetState.val;
+  document.querySelectorAll('[data-act="hrSet"]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.v) === sheetState.val)));
+  const sel = document.querySelector('[data-act="hrSet"][aria-pressed="true"]'); if (sel) sel.scrollIntoView({block: 'nearest', inline: 'center'});
+}
+function rerenderKeep() {
+  const y = window.scrollY, ae = document.activeElement, key = ae && ae.dataset ? ae.dataset.act + '|' + (ae.dataset.v || ae.dataset.d || ae.dataset.k || '') : null;
+  render();
+  window.scrollTo(0, y);
+  if (key) { const el = Array.from(document.querySelectorAll('[data-act]')).find(e => e.dataset.act + '|' + (e.dataset.v || e.dataset.d || e.dataset.k || '') === key); if (el) try { el.focus({preventScroll: true}); } catch (e) {} }
+}
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-act]');
+  if (!t || t.disabled) return;
+  const fn = ACT[t.dataset.act];
+  if (!fn) return;
+  e.preventDefault();
+  Snd.unlock();
+  fn(t, e);
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && sheetState) { closeSheet(); return; }
+  const t = e.target;
+  if ((e.key === 'Enter' || e.key === ' ') && t && t.tagName === 'TR' && t.dataset.act) { e.preventDefault(); t.click(); return; }
+  if (e.key === ' ' && route() === 'live' && S && !sheetState && t === document.body) { e.preventDefault(); pauseToggle(); }
+});
+document.addEventListener('pointerdown', () => Snd.unlock(), {passive: true});
+let noteTimer = null;
+document.addEventListener('input', e => {
+  if (e.target && e.target.id === 'sum-note') {
+    const val = e.target.value;
+    clearTimeout(noteTimer);
+    noteTimer = setTimeout(() => { const rec = recById(lastSummaryId); if (rec) { rec.note = val.slice(0, 2000); saveRec(rec, true); } }, 800);
+  }
+});
+document.addEventListener('focusout', () => { if (pendingRender) setTimeout(() => { const ae = document.activeElement; if (!(ae && (ae.tagName === 'TEXTAREA' || ae.tagName === 'INPUT'))) { pendingRender = false; onStoreChange(); } }, 50); });
+document.addEventListener('visibilitychange', () => {
+  if (!S) return;
+  if (document.visibilityState === 'hidden') persistActive();
+  else { const now = clock(); tick(now); if (S) { liveDyn(now); if (!S.paused) Wake.request(); } }
+});
+
+/* small read-only hook for automated checks */
+window.__coachDebug = () => ({route: route(), speed: S ? S.speed : null, phase: S ? curPhase().key : null, hrSrc: S ? S.hrSrc : null, hr: HR.bpm, hrState: HR.state, said: Speaker.log.map(x => x.keys), voice: Speaker.state, path: Speaker.path, env: ENV});
+
+/* ================= boot ================= */
+function validActive(a) {
+  return a && typeof a === 'object' && (a.mode === '4x4' || a.mode === 'z2') && Array.isArray(a.phases) && a.phases.length > 0 && isNum(a.idx) && a.idx >= 0 && a.idx < a.phases.length && isNum(a.startedAt) && a.Z && a.opts && !a.done && !a.demo;
+}
+function restoreActive(hotActive) {
+  const a = hotActive || LS.get(K.active);
+  if (!validActive(a)) { if (a) LS.del(K.active); return; }
+  const now = Date.now();
+  if (now - a.startedAt > 4 * 3600e3) { LS.del(K.active); return; }
+  S = Object.assign({hr5: [], hr5Next: 0, spd: [], marks: [], cmds: 0, lastCmdAt: -1e9, coolExt: 0, said: {}, hrSrc: 'manual', z2Next: 0}, a);
+  if (S.hrSrc === 'whoop' && HR.mode !== 'ble') S.hrSrc = 'whoop';
+  dyn = {};
+  if (!S.paused && S.runSince != null) {
+    const last = isNum(S.savedAt) ? S.savedAt : now;
+    if (!hotActive && now - last > 15 * 60e3) {
+      S.accum += Math.max(0, last - S.runSince); S.runSince = null; S.paused = true; S.pausedAt = last; S.closedPause = true;
+    }
+  }
+  ensureLoop();
+  if (!S.closedPause) { if (!S.paused) Wake.request(); if (route() !== 'live') location.hash = 'live'; }
+}
+let booted = false;
+function boot(data) {
+  if (booted) return;
+  booted = true;
+  Store.init();
+  restoreActive(data && data.active);
+  render();
+  Store.connect();
+  setTimeout(() => { Speaker.load(); }, 700);
+  setTimeout(() => { BLE.restore(); }, 400);
+}
+try {
+  const hot = window.claude && window.claude.hot;
+  if (hot && typeof hot.snapshot === 'function') hot.snapshot(() => ({active: S && !S.done && !S.demo ? JSON.parse(JSON.stringify(S)) : null}));
+  if (hot && typeof hot.ready === 'function') hot.ready(boot); else boot((hot && hot.data) || {});
+} catch (e) { boot({}); }
+})();
+</script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){});}</script></body></html>
