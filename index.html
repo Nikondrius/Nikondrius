@@ -587,6 +587,12 @@ function profileSVG(phases, o = {}) {
 /* ================= derived numbers for a finished session ================= */
 const z5Of = rec => Math.round(rec.hrRest + 0.9 * (rec.hrMax - rec.hrRest));
 function seriesMinutesAbove(rec, thr) { const h = rec.hr5 || []; let n = 0; for (const v of h) if (isNum(v) && v >= thr) n++; return n * 5 / 60; }
+/* highest 15 s average of the live heart rate. Going above your stored max in a hard interval is the field test for max heart rate */
+function measuredPeak(rec) {
+  const h = rec.hr5 || []; let best = null;
+  for (let i = 0; i + 2 < h.length; i++) if (isNum(h[i]) && isNum(h[i + 1]) && isNum(h[i + 2])) { const m = (h[i] + h[i + 1] + h[i + 2]) / 3; if (best == null || m > best) best = m; }
+  return best == null ? null : Math.round(best);
+}
 function speedAt(rec, sec) { let v = rec.startSpeed; for (const [t, s] of (rec.spd || [])) { if (t <= sec) v = s; else break; } return v; }
 function derive(rec) {
   const hr5 = (rec.hr5 || []).filter(isNum);
@@ -747,7 +753,7 @@ function normSession(d) {
     hrSrc: ['whoop', 'sim', 'manual'].includes(d.hrSrc) ? d.hrSrc : 'manual', cmds: n(d.cmds) ?? 0,
     coolDone: d.coolDone == null ? null : !!d.coolDone, endedEarly: !!d.endedEarly,
     distKm: n(d.distKm) ?? 0, elevM: n(d.elevM) ?? 0, kcal: n(d.kcal) ?? 0,
-    z5MinWhoop: n(d.z5MinWhoop), note: typeof d.note === 'string' ? d.note.slice(0, 2000) : '', autoFrom: n(d.autoFrom), autoTo: n(d.autoTo), autoKgFrom: n(d.autoKgFrom), autoKgTo: n(d.autoKgTo),
+    z5MinWhoop: n(d.z5MinWhoop), note: typeof d.note === 'string' ? d.note.slice(0, 2000) : '', autoFrom: n(d.autoFrom), autoTo: n(d.autoTo), autoKgFrom: n(d.autoKgFrom), autoKgTo: n(d.autoKgTo), maxFrom: n(d.maxFrom), maxTo: n(d.maxTo),
     updatedAt: n(d.updatedAt) ?? 0, synced: !!d.synced
   };
   if (s.mode === '4x4') while (s.intervals.length < 4) s.intervals.push({n: s.intervals.length + 1, startSpeed: null, endSpeed: null, endHr: null, rpe: null, bail: false, done: false, skipped: false, auto: false});
@@ -1481,6 +1487,10 @@ function finishSession(at, early) {
       Store.setSetting(key, rec.autoTo);
       if (nKg !== kg) { rec.autoKgFrom = kg; rec.autoKgTo = nKg; Store.setSetting('vestKg', nKg); }
     }
+    if (rec.mode === '4x4' && rec.hrSrc === 'whoop') {
+      const peak = measuredPeak(rec), curMax = Store.settings.hrMax;
+      if (isNum(peak) && peak > curMax && peak <= 220) { rec.maxFrom = curMax; rec.maxTo = Math.min(peak, curMax + 5); Store.setSetting('hrMax', rec.maxTo); }
+    }
     Store.saveSession(rec, true);
   }
   lastSummaryId = rec.id;
@@ -2191,7 +2201,8 @@ function viewSummary() {
   const was = auto ? num(vestOn(rec.autoFrom, kg, stg, rec.incline)) : '', kgMoved = auto && isNum(rec.autoKgTo);
   const nextBtn = rec.demo ? '' : auto ? `<p class="muted small">Set automatically, was ${was} km/h${kgMoved ? (kg ? ` with ${kgTxt(kg)} kg` : ' without the vest') : ''}.</p><button class="btn" data-act="undoNext">Undo, keep ${was}${kgMoved ? (kg ? ` with ${kgTxt(kg)} kg` : ' without vest') : ''}</button>` : `<button class="btn ${isStart ? '' : 'primary'}" data-act="applyNext" ${isStart ? 'disabled' : ''}>${isStart ? 'Already your start speed' : 'Use as start speed'}</button>`;
   const nextCard = nx ? `<div class="card next"><span class="eyebrow">Next time</span><div class="nv">${num(nx.speed)} <small class="muted" style="font-size:18px">km/h${nKg ? ' · vest ' + kgTxt(nKg) + ' kg' : ''}</small></div><p class="muted">${esc(nx.text)}</p>${nextBtn}</div>` : '';
-  return `${runbarHTML()}${head}${scoreCard}${body}${nextCard}
+  const maxCard = !rec.demo && isNum(rec.maxTo) && isNum(rec.maxFrom) ? `<div class="card"><span class="eyebrow">Max heart rate</span><p>New max heart rate ${rec.maxTo}, up from ${rec.maxFrom}. You went above your old max today, so your zones moved up to match.</p>${stg.hrMax === rec.maxTo ? `<button class="btn" data-act="undoMax">Undo, keep ${rec.maxFrom}</button>` : ''}</div>` : '';
+  return `${runbarHTML()}${head}${scoreCard}${body}${maxCard}${nextCard}
   <section class="section"><label class="eyebrow" for="sum-note">Note</label><textarea id="sum-note" maxlength="2000" placeholder="Legs, sleep, shoes, anything notable">${esc(rec.note)}</textarea></section>
   <div class="btn-row"><button class="btn primary" data-act="copySession">Copy for Claude</button><a class="btn" href="#today">Done</a></div>
   ${rec.demo ? '' : '<button class="link danger" data-act="delAsk">Delete session</button>'}`;
@@ -2297,6 +2308,7 @@ function viewLearn() {
     <li>Above <strong>${Z.z2hi}</strong> it reacts right away. Otherwise it only speaks when you need to act.</li>
     <li>It assumes you follow and keeps track of your speed itself. You don’t need to tap anything.</li>
     <li>In the 4×4 it keeps your checkpoints at minute 2, minute 3 and the last minute, decided from your live heart rate. Finish heart rate and Zone 5 minutes are logged for you.</li>
+    <li>If your heart rate stays above your max for 15 seconds in a 4×4, the coach raises your max and your zones after the session, the same way WHOOP does. Undo is on the summary.</li>
   </ul></section>
   <section class="section k-sec"><h2>Set up WHOOP</h2><ol>
     <li>In the WHOOP app, turn on <strong>Broadcast Heart Rate</strong> in your device settings.</li>
@@ -2361,7 +2373,7 @@ function viewLearn() {
 
 /* ---- setup ---- */
 const SET_GROUPS = [
-  ['Heart rate', [['hrMax', 'Max heart rate', 'from WHOOP', 1, 0], ['hrRest', 'Resting heart rate', 'morning value', 1, 0]]],
+  ['Heart rate', [['hrMax', 'Max heart rate', 'from WHOOP, rises by itself if a 4×4 goes higher', 1, 0], ['hrRest', 'Resting heart rate', 'morning value', 1, 0]]],
   ['Norwegian 4×4', [['speed4x4', 'Interval start speed', 'km/h', 0.1, 1], ['warmSpeed', 'Warm-up', 'km/h', 0.1, 1], ['recSpeed', 'Recovery', 'km/h', 0.1, 1], ['incline', 'Incline', '% for both sessions', 0.5, 1]]],
   ['Zone 2', [['z2Speed', 'Speed without vest', 'km/h, lowered for the vest you carry', 0.1, 1], ['z2Minutes', 'Duration', 'min', 5, 0], ['vestKg', 'Weight vest', 'kg, your usual load', 1, 1], ['checkEvery', 'Manual check every', 'min, only without live heart rate', 5, 0], ['z2Week', 'Weekly goal', 'min of Zone 2', 10, 0]]],
   ['Body', [['weight', 'Body weight', 'kg, for the vest math and kcal', 0.5, 1]]]
@@ -2485,6 +2497,7 @@ const ACT = {
   chkSave: () => chkSave(),
   sumHr: t => openHrSheet(Number(t.dataset.n), 'sum', lastSummaryId),
   z5: t => { const rec = recById(lastSummaryId); if (!rec) return; const base = isNum(rec.z5MinWhoop) ? rec.z5MinWhoop : rec.z5Min || 0; rec.z5MinWhoop = clamp(Math.round((base + Number(t.dataset.d)) * 2) / 2, 0, 30); $('#sum-z5').textContent = num(rec.z5MinWhoop); saveRec(rec, true); },
+  undoMax: () => { const rec = recById(lastSummaryId); if (!rec || !isNum(rec.maxFrom)) return; Store.setSetting('hrMax', rec.maxFrom); toast(`Max heart rate back to ${rec.maxFrom}`); render(); },
   undoNext: () => {
     const rec = recById(lastSummaryId); if (!rec || !isNum(rec.autoFrom)) return;
     Store.setSetting(rec.mode === '4x4' ? 'speed4x4' : 'z2Speed', rec.autoFrom);
